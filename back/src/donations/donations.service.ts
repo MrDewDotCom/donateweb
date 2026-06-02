@@ -1,26 +1,42 @@
 import { Injectable } from '@nestjs/common';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { UpdateDonationDto } from './dto/update-donation.dto';
+import { PrismaService } from 'prisma/src/prisma.service';
 
 @Injectable()
 export class DonationsService {
+  constructor(private prisma: PrismaService) { }
+
   create(createDonationDto: CreateDonationDto) {
-    return 'This action adds a new donation';
+    return this.prisma.donation.create({
+      data: createDonationDto,
+    });
   }
 
   findAll() {
-    return `This action returns all donations`;
+    return this.prisma.donation.findMany({
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
   }
 
   findOne(id: number) {
-    return `This action returns a #${id} donation`;
+    return this.prisma.donation.findUnique({
+      where: { id },
+    });
   }
 
   update(id: number, updateDonationDto: UpdateDonationDto) {
-    return `This action updates a #${id} donation`;
+    return this.prisma.donation.update({
+      where: { id },
+      data: updateDonationDto,
+    });
   }
 
   remove(id: number) {
-    return `This action removes a #${id} donation`;
+    return this.prisma.donation.delete({
+      where: { id },
+    });
   }
 }

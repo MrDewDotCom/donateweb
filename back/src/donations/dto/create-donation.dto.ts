@@ -1,1 +1,5 @@
-export class CreateDonationDto {}
+export class CreateDonationDto {
+    name: string;
+    message?: string;
+    amount: number;
+}
