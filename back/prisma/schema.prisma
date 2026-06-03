@@ -18,5 +18,7 @@ model Donation {
   message   String?
   amount    Int
   status    String   @default("pending")
+  qrCode    String?
   createdAt DateTime @default(now())
+  paidAt    DateTime?
 }
