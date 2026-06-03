@@ -5,6 +5,8 @@ export default function DonatePage() {
     const [name, setName] = useState("");
     const [message, setMessage] = useState("");
     const [amount, setAmount] = useState(20);
+    const [qrCode, setQrCode] = useState("");
+    const [status, setStatus] = useState("");
 
     const handleSubmit = async () => {
         try {
@@ -17,9 +19,8 @@ export default function DonatePage() {
                 }
             );
 
-            console.log(res.data);
-
-            alert("ส่งข้อมูลสำเร็จ");
+            setQrCode(res.data.qrCode);
+            setStatus(res.data.status);
 
             setName("");
             setMessage("");
@@ -59,8 +60,22 @@ export default function DonatePage() {
             <br />
 
             <button onClick={handleSubmit}>
-                Donate
+                Submit
             </button>
+
+            {qrCode && (
+                <div>
+                    <h2>สแกนเพื่อชำระเงิน</h2>
+
+                    <img
+                        src={qrCode}
+                        alt="PromptPay QR"
+                        width={300}
+                    />
+
+                    <p>สถานะ: {status}</p>
+                </div>
+            )}
         </div>
     );
 }

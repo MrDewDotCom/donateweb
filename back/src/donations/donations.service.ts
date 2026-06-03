@@ -2,15 +2,34 @@ import { Injectable } from '@nestjs/common';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { UpdateDonationDto } from './dto/update-donation.dto';
 import { PrismaService } from 'prisma/src/prisma.service';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
 export class DonationsService {
-  constructor(private prisma: PrismaService) { }
+  constructor(
+    private prisma: PrismaService,
+    private paymentService: PaymentService,) { }
 
-  create(createDonationDto: CreateDonationDto) {
-    return this.prisma.donation.create({
-      data: createDonationDto,
+  async create(createDonationDto: CreateDonationDto) {
+    const qrCode = await this.paymentService.generateQRCode(
+      process.env.PROMPTPAY_PHONE!,
+      createDonationDto.amount,
+    );
+
+    const donation = await this.prisma.donation.create({
+      data: {
+        ...createDonationDto,
+        qrCode,
+      },
     });
+
+    console.log(donation);
+
+    return {
+      id: donation.id,
+      status: donation.status,
+      qrCode: donation.qrCode,
+    };
   }
 
   findAll() {
