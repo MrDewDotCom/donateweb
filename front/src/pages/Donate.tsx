@@ -1,5 +1,6 @@
 import { useState } from "react";
-import axios from "axios";
+import { createDonation } from "../services/donation.service";
+
 
 export default function DonatePage() {
     const [name, setName] = useState("");
@@ -10,13 +11,10 @@ export default function DonatePage() {
 
     const handleSubmit = async () => {
         try {
-            const res = await axios.post(
-                "http://localhost:3000/donations",
-                {
-                    name,
-                    message,
-                    amount,
-                }
+            const res = await createDonation(
+                name,
+                message,
+                amount
             );
 
             setQrCode(res.data.qrCode);

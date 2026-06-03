@@ -1,26 +1,22 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import type { Donation } from "../types/donation";
+import {
+    getDonations,
+    markDonationAsPaid,
+} from "../services/donation.service";
 
 export default function AdminPage() {
-    const [donations, setDonations] = useState<Donation[]>([]);
+    const [donations, setDonations] =
+        useState<Donation[]>([]);
 
     const loadDonations = async () => {
-        const res = await axios.get(
-            "http://localhost:3000/donations"
-        );
+        const res = await getDonations();
 
         setDonations(res.data);
     };
 
     const markAsPaid = async (id: number) => {
-        await axios.patch(
-            `http://localhost:3000/donations/${id}`,
-            {
-                status: "paid",
-            }
-
-        );
+        await markDonationAsPaid(id);
 
         loadDonations();
     };
