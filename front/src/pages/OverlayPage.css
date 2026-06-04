@@ -1,26 +1,46 @@
 .overlay {
     position: fixed;
+
     top: 50px;
     right: 50px;
 
-    background: #222;
-    color: white;
+    min-width: 350px;
 
     padding: 20px;
 
-    border-radius: 12px;
+    border-radius: 16px;
 
-    min-width: 300px;
+    background: rgba(20, 20, 20, 0.95);
 
-    animation: slideIn 0.5s ease;
+    color: white;
+
+    text-align: center;
+
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, .4);
+
+    animation:
+        fadeIn .4s ease;
 }
 
-@keyframes slideIn {
+.overlay h1 {
+    margin: 10px 0;
+}
+
+.overlay h2 {
+    color: gold;
+}
+
+@keyframes fadeIn {
     from {
-        transform: translateX(100%);
+        opacity: 0;
+        transform:
+            translateY(-20px);
     }
 
     to {
-        transform: translateX(0);
+        opacity: 1;
+        transform:
+            translateY(0);
     }
 }

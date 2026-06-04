@@ -23,6 +23,12 @@ export default function OverlayPage() {
         socket.on("donationPaid", (data: Donation) => {
             console.log("Donation Received", data);
 
+            const audio = new Audio(
+                "/sounds/donation.mp3"
+            );
+
+            audio.play();
+
             setQueue((prev) => {
                 console.log("Adding to queue", data.id);
 
@@ -79,18 +85,18 @@ export default function OverlayPage() {
     }
 
     return (
-        <div className="overlay">
-            <h1>
-                🎉 {donation.name}
-            </h1>
+        <>
+            <h3>🎉 NEW DONATION</h3>
+
+            <h1>{donation.name}</h1>
 
             <h2>
-                {donation.amount} บาท
+                ฿{donation.amount}
             </h2>
 
             <p>
                 {donation.message}
             </p>
-        </div>
+        </>
     );
 }
