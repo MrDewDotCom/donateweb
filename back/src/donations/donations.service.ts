@@ -60,6 +60,12 @@ export class DonationsService {
       });
 
     if (donation.status === 'paid') {
+      console.log(
+        'EMIT:',
+        donation.id,
+        donation.name,
+      );
+
       this.donationsGateway.emitDonationPaid(
         donation,
       );
