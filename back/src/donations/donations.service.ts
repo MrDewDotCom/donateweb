@@ -79,4 +79,18 @@ export class DonationsService {
       where: { id },
     });
   }
+
+  async getRecentDonations() {
+    return this.prisma.donation.findMany({
+      where: {
+        status: "paid",
+      },
+
+      orderBy: {
+        paidAt: "desc",
+      },
+
+      take: 5,
+    });
+  }
 }

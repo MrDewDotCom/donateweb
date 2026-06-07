@@ -5,7 +5,7 @@ import { UpdateDonationDto } from './dto/update-donation.dto';
 
 @Controller('donations')
 export class DonationsController {
-  constructor(private readonly donationsService: DonationsService) {}
+  constructor(private readonly donationsService: DonationsService) { }
 
   @Post()
   create(@Body() createDonationDto: CreateDonationDto) {
@@ -15,6 +15,13 @@ export class DonationsController {
   @Get()
   findAll() {
     return this.donationsService.findAll();
+  }
+
+
+  @Get("recent")
+  getRecentDonations() {
+    return this.donationsService
+      .getRecentDonations();
   }
 
   @Get(':id')

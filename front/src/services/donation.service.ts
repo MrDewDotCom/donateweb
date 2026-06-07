@@ -28,3 +28,8 @@ export const markDonationAsPaid = (
         }
     );
 };
+
+export const getRecentDonations = () =>
+    axios.get(
+        "http://localhost:3000/donations/recent"
+    );
