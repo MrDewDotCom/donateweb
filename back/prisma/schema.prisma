@@ -22,3 +22,18 @@ model Donation {
   createdAt DateTime @default(now())
   paidAt    DateTime?
 }
+
+model Campaign {
+  id         Int      @id @default(autoincrement())
+
+  title      String
+
+  goalAmount Int
+
+  startDate  DateTime
+  endDate    DateTime
+
+  isActive   Boolean  @default(true)
+
+  createdAt  DateTime @default(now())
+}
