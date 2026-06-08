@@ -58,6 +58,91 @@ export class CampaignsService {
 
             currentAmount,
             percentage,
+
         };
+    }
+
+
+    async getTopDonators() {
+        const campaign =
+            await this.prisma.campaign.findFirst({
+                where: {
+                    isActive: true,
+                },
+            });
+
+        if (!campaign) {
+            return [];
+        }
+
+        const donations =
+            await this.prisma.donation.findMany({
+                where: {
+                    status: "paid",
+                    paidAt: {
+                        gte: campaign.startDate,
+                        lte: campaign.endDate,
+                    },
+                },
+            });
+
+        const totals = donations.reduce(
+            (acc, donation) => {
+                acc[donation.name] =
+                    (acc[donation.name] || 0) +
+                    donation.amount;
+
+                return acc;
+            },
+            {} as Record<string, number>,
+        );
+
+        return Object.entries(totals)
+            .map(([name, total]) => ({
+                name,
+                total,
+            }))
+            .sort(
+                (a, b) =>
+                    b.total - a.total,
+            )
+            .slice(0, campaign.topDonatorLimit,);
+    }
+
+    async getRecentDonations() {
+        const campaign =
+            await this.prisma.campaign.findFirst({
+                where: {
+                    isActive: true,
+                },
+            });
+
+        if (!campaign) {
+            return [];
+        }
+
+        return this.prisma.donation.findMany({
+            where: {
+                status: 'paid',
+                paidAt: {
+                    gte: campaign.startDate,
+                    lte: campaign.endDate,
+                },
+            },
+            orderBy: {
+                paidAt: 'desc',
+            },
+            take: campaign.recentLimit,
+        });
+    }
+
+    async updateCampaign(
+        id: number,
+        data: any,
+    ) {
+        return this.prisma.campaign.update({
+            where: { id },
+            data,
+        });
     }
 }

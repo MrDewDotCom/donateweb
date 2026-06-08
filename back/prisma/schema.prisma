@@ -31,4 +31,6 @@ model Campaign {
   endDate    DateTime
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
+  recentLimit      Int      @default(1)
+  topDonatorLimit  Int      @default(3)
 }

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Campaign" ADD COLUMN     "recentLimit" INTEGER NOT NULL DEFAULT 10,
+ADD COLUMN     "topDonatorLimit" INTEGER NOT NULL DEFAULT 3;
