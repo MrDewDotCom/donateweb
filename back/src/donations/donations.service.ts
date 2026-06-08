@@ -53,10 +53,18 @@ export class DonationsService {
     id: number,
     updateDonationDto: UpdateDonationDto,
   ) {
+    const data: any = {
+      ...updateDonationDto,
+    };
+
+    if (updateDonationDto.status === 'paid') {
+      data.paidAt = new Date();
+    }
+
     const donation =
       await this.prisma.donation.update({
         where: { id },
-        data: updateDonationDto,
+        data,
       });
 
     if (donation.status === 'paid') {
