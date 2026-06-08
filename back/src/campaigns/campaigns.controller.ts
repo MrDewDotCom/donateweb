@@ -13,4 +13,10 @@ export class CampaignsController {
         return this.campaignsService
             .getActiveCampaign();
     }
+
+    @Get("active/progress")
+    getCampaignProgress() {
+        return this.campaignsService
+            .getCampaignProgress();
+    }
 }
