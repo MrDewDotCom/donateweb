@@ -24,3 +24,8 @@ export const getProgress =
         axios.get(
             `${API_URL}/campaigns/active/progress`
         );
+export const getTopDonators =
+    () =>
+        axios.get(
+            `${API_URL}/campaigns/active/top-donators`
+        );
