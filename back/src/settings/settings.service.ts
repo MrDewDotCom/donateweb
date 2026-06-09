@@ -21,4 +21,18 @@ export class SettingsService {
 
         return settings;
     }
+
+    async updateSettings(data: any) {
+        const settings =
+            await this.getSettings();
+
+        return this.prisma.setting.update({
+            where: {
+                id: settings.id,
+            },
+            data,
+        });
+    }
+
+
 }

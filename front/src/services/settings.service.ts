@@ -8,3 +8,10 @@ export const getSettings =
         axios.get(
             `${API_URL}/settings`
         );
+
+export const updateSettings =
+    (data: any) =>
+        axios.patch(
+            `${API_URL}/settings`,
+            data,
+        );
