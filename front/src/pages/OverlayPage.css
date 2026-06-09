@@ -44,3 +44,9 @@
             translateY(0);
     }
 }
+
+html,
+body,
+#root {
+    background: transparent !important;
+}

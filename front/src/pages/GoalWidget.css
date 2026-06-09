@@ -5,3 +5,9 @@ body {
 .goal-widget {
     width: 500px;
 }
+
+html,
+body,
+#root {
+    background: transparent !important;
+}
