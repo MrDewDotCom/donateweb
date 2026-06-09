@@ -10,6 +10,7 @@ import OverlayPage from "./pages/Overlay";
 import SettingsPage from "./pages/Settings";
 import GoalWidget from "./pages/GoalWidget";
 import TopDonatorsWidget from "./pages/TopDonatorsWidget";
+import RecentDonationsWidget from "./pages/RecentDonationsWidget";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/goal" element={<GoalWidget />} />
         <Route path="/top" element={<TopDonatorsWidget />} />
+        <Route path="/recent" element={<RecentDonationsWidget />} />
       </Routes>
     </BrowserRouter>
   );
