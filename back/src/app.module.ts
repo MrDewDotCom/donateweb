@@ -5,6 +5,7 @@ import { DonationsModule } from './donations/donations.module';
 import { PrismaModule } from 'prisma/src/prisma.module';
 import { PaymentModule } from './payment/payment.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
+import { SettingsModule } from './settings/settings.module';
 
 
 @Module({
@@ -13,6 +14,7 @@ import { CampaignsModule } from './campaigns/campaigns.module';
     DonationsModule,
     PaymentModule,
     CampaignsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

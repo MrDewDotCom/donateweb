@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Donation } from "../types/donation";
-import {
-    getDonations,
-    markDonationAsPaid,
-} from "../services/donation.service";
+import { getDonations, markDonationAsPaid, } from "../services/donation.service";
+import SettingsPanel from "../components/SettingsPanel";
 
 export default function AdminPage() {
     const [donations, setDonations] =
@@ -28,6 +26,8 @@ export default function AdminPage() {
     return (
         <div>
             <h1>Admin Dashboard</h1>
+
+            <SettingsPanel />
 
             {donations.map((d: any) => (
                 <div key={d.id}>

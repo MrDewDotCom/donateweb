@@ -34,3 +34,11 @@ model Campaign {
   recentLimit      Int      @default(1)
   topDonatorLimit  Int      @default(3)
 }
+
+model Setting {
+  id              Int      @id @default(1)
+  topDonatorsLimit Int     @default(3)
+  refreshInterval Int      @default(5000)
+  soundEnabled    Boolean  @default(true)
+  ttsEnabled      Boolean  @default(false)
+}
