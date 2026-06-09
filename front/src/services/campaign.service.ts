@@ -18,3 +18,9 @@ export const updateCampaign =
             `${API_URL}/campaigns/${id}`,
             data,
         );
+
+export const getProgress =
+    () =>
+        axios.get(
+            `${API_URL}/campaigns/active/progress`
+        );
