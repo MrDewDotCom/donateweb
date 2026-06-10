@@ -1,8 +1,8 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import type { Donation } from "../types/donation";
 import "./OverlayPage.css";
-
+import { getSettings } from "../services/settings.service";
 
 const socket = io("http://localhost:3000");
 
@@ -16,87 +16,183 @@ export default function OverlayPage() {
     const [queue, setQueue] =
         useState<Donation[]>([]);
 
-    const timerRef =
-        useRef<number | null>(null);
+    const [ttsEnabled,
+        setTtsEnabled] =
+        useState(false);
 
     useEffect(() => {
-        socket.on("donationPaid", (data: Donation) => {
-            console.log("Donation Received", data);
+        socket.on(
+            "donationPaid",
+            (data: Donation) => {
+                console.log(
+                    "Donation Received",
+                    data,
+                );
 
-            const audio = new Audio(
-                "/sounds/donation.mp3"
-            );
-
-            audio.play();
-
-            setQueue((prev) => {
-                console.log("Adding to queue", data.id);
-
-                return [...prev, data];
-            });
-        });
+                setQueue((prev) => [
+                    ...prev,
+                    data,
+                ]);
+            },
+        );
 
         return () => {
-            socket.off("donationPaid");
+            socket.off(
+                "donationPaid",
+            );
         };
     }, []);
 
     useEffect(() => {
-        console.log("Effect Run");
+        const load =
+            async () => {
+                const res =
+                    await getSettings();
 
-        if (visible) {
-            console.log("Already visible");
+                setTtsEnabled(
+                    res.data.ttsEnabled,
+                );
+            };
+
+        load();
+    }, []);
+
+    useEffect(() => {
+        if (visible)
             return;
-        }
 
-        if (queue.length === 0) {
-            console.log("Queue empty");
+        if (queue.length === 0)
             return;
-        }
 
-        const nextDonation = queue[0];
+        const nextDonation =
+            queue[0];
 
-        console.log("Showing", nextDonation.id);
+        setDonation(
+            nextDonation,
+        );
 
-        setDonation(nextDonation);
         setVisible(true);
 
-        timerRef.current = window.setTimeout(() => {
-            console.log("Removing", nextDonation.id);
+        const finishDonation =
+            () => {
+                setTimeout(() => {
+                    setVisible(false);
 
-            setVisible(false);
-            setDonation(null);
+                    setDonation(
+                        null,
+                    );
 
-            setQueue((prev) => prev.slice(1));
-        }, 5000);
+                    setQueue(
+                        (prev) =>
+                            prev.slice(
+                                1,
+                            ),
+                    );
+                }, 2000);
+            };
 
-    }, [queue, visible]);
+        const audio =
+            new Audio(
+                "/sounds/donation.mp3",
+            );
+
+        audio.onended =
+            () => {
+                if (
+                    !ttsEnabled ||
+                    !nextDonation
+                        .message
+                        ?.trim()
+                ) {
+                    finishDonation();
+
+                    return;
+                }
+
+                const speech =
+                    new SpeechSynthesisUtterance(
+                        nextDonation.message,
+                    );
+
+                speech.lang =
+                    "th-TH";
+
+                const thaiVoice =
+                    window
+                        .speechSynthesis
+                        .getVoices()
+                        .find(
+                            (
+                                voice,
+                            ) =>
+                                voice.lang ===
+                                "th-TH",
+                        );
+
+                if (
+                    thaiVoice
+                ) {
+                    speech.voice =
+                        thaiVoice;
+                }
+
+                speech.onend =
+                    () => {
+                        finishDonation();
+                    };
+
+                window
+                    .speechSynthesis
+                    .cancel();
+
+                window
+                    .speechSynthesis
+                    .speak(
+                        speech,
+                    );
+            };
+
+        audio.play();
+    }, [
+        queue,
+        visible,
+        ttsEnabled,
+    ]);
 
     useEffect(() => {
         return () => {
-            if (timerRef.current) {
-                clearTimeout(timerRef.current);
-            }
+            window
+                .speechSynthesis
+                .cancel();
         };
     }, []);
 
-    if (!visible || !donation) {
+    if (
+        !visible ||
+        !donation
+    ) {
         return null;
     }
 
     return (
-        <>
-            <h3>🎉 NEW DONATION</h3>
+        <div className="overlay">
+            <h3>
+                🎉 NEW DONATION
+            </h3>
 
-            <h1>{donation.name}</h1>
+            <h1>
+                {donation.name}
+            </h1>
 
             <h2>
                 ฿{donation.amount}
             </h2>
 
             <p>
-                {donation.message}
+                {
+                    donation.message
+                }
             </p>
-        </>
+        </div>
     );
 }

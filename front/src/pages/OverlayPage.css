@@ -8,16 +8,11 @@
 
     padding: 20px;
 
-    border-radius: 16px;
-
-    background: rgba(20, 20, 20, 0.95);
 
     color: white;
 
     text-align: center;
 
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, .4);
 
     animation:
         fadeIn .4s ease;
