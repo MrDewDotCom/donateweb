@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/src/prisma.service';
+import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 
 @Injectable()
@@ -31,6 +32,18 @@ export class SettingsService {
                 id: settings.id,
             },
             data,
+        });
+    }
+    async getSetting() {
+        return this.prisma.setting.findFirst();
+    }
+
+    async updateSetting(
+        dto: UpdateSettingsDto,
+    ) {
+        return this.prisma.setting.update({
+            where: { id: 1 },
+            data: dto,
         });
     }
 

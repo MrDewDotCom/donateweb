@@ -1,44 +1,43 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
-  url = env("DATABASE_URL")
+  url      = env("DATABASE_URL")
 }
 
 model Donation {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   name      String
   message   String?
   amount    Int
-  status    String   @default("pending")
-  qrCode    String?
-  createdAt DateTime @default(now())
+  status    String    @default("pending")
+  createdAt DateTime  @default(now())
   paidAt    DateTime?
+  qrCode    String?
 }
 
 model Campaign {
-  id         Int      @id @default(autoincrement())
-  title      String
-  goalAmount Int
-  startDate  DateTime
-  endDate    DateTime
-  isActive   Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  recentLimit      Int      @default(1)
-  topDonatorLimit  Int      @default(3)
+  id              Int      @id @default(autoincrement())
+  title           String
+  goalAmount      Int
+  startDate       DateTime
+  endDate         DateTime
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  recentLimit     Int      @default(1)
+  topDonatorLimit Int      @default(3)
 }
 
 model Setting {
-  id              Int      @id @default(1)
+  id               Int     @id @default(1)
   topDonatorsLimit Int     @default(3)
-  refreshInterval Int      @default(5000)
-  soundEnabled    Boolean  @default(true)
-  ttsEnabled      Boolean  @default(false)
+  refreshInterval  Int     @default(5000)
+  soundEnabled     Boolean @default(true)
+  ttsEnabled       Boolean @default(false)
+  alertSound       String  @default("donation.mp3")
+  alertVolume      Int     @default(100)
+  overlayDuration  Int     @default(2)
+  ttsVoice         String?
 }

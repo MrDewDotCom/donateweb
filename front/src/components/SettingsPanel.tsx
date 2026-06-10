@@ -7,6 +7,9 @@ export default function SettingsPanel() {
     const [settings, setSettings] =
         useState<Settings>();
 
+    const [voices, setVoices] =
+        useState<SpeechSynthesisVoice[]>([]);
+
     const [saving, setSaving] =
         useState(false);
 

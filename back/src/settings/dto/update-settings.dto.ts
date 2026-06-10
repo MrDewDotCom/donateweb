@@ -1,4 +1,4 @@
-import { IsBoolean, IsNumber, IsOptional, } from 'class-validator';
+import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, } from 'class-validator';
 
 export class UpdateSettingsDto {
     @IsOptional()
@@ -16,4 +16,20 @@ export class UpdateSettingsDto {
     @IsOptional()
     @IsBoolean()
     ttsEnabled?: boolean;
+
+    @IsOptional()
+    @IsString()
+    ttsVoice?: string;
+
+    @IsOptional()
+    @IsString()
+    alertSound?: string;
+
+    @IsOptional()
+    @IsInt()
+    alertVolume?: number;
+
+    @IsOptional()
+    @IsInt()
+    overlayDuration?: number;
 }

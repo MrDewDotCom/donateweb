@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import type { Donation } from "../types/donation";
+import type { Settings } from "../types/settings";
 import "./OverlayPage.css";
 import { getSettings } from "../services/settings.service";
 
@@ -16,183 +17,119 @@ export default function OverlayPage() {
     const [queue, setQueue] =
         useState<Donation[]>([]);
 
-    const [ttsEnabled,
-        setTtsEnabled] =
-        useState(false);
+    const [settings, setSettings] =
+        useState<Settings | null>(null);
 
     useEffect(() => {
-        socket.on(
-            "donationPaid",
-            (data: Donation) => {
-                console.log(
-                    "Donation Received",
-                    data,
-                );
-
-                setQueue((prev) => [
-                    ...prev,
-                    data,
-                ]);
-            },
-        );
+        socket.on("donationPaid", (data: Donation) => {
+            console.log("Donation Received", data);
+            setQueue((prev) => [...prev, data]);
+        });
 
         return () => {
-            socket.off(
-                "donationPaid",
-            );
+            socket.off("donationPaid");
         };
     }, []);
 
     useEffect(() => {
-        const load =
-            async () => {
-                const res =
-                    await getSettings();
-
-                setTtsEnabled(
-                    res.data.ttsEnabled,
-                );
-            };
+        const load = async () => {
+            const res = await getSettings();
+            setSettings(res.data);
+        };
 
         load();
     }, []);
 
     useEffect(() => {
-        if (visible)
-            return;
+        if (visible) return;
+        if (queue.length === 0) return;
 
-        if (queue.length === 0)
-            return;
+        const nextDonation = queue[0];
 
-        const nextDonation =
-            queue[0];
-
-        setDonation(
-            nextDonation,
-        );
-
+        setDonation(nextDonation);
         setVisible(true);
 
-        const finishDonation =
-            () => {
-                setTimeout(() => {
-                    setVisible(false);
+        const finishDonation = () => {
+            setTimeout(() => {
+                setVisible(false);
+                setDonation(null);
+                setQueue((prev) => prev.slice(1));
+            }, (settings?.overlayDuration ?? 2) * 1000);
+        };
 
-                    setDonation(
-                        null,
-                    );
+        const audio = new Audio(
+            `/sounds/${settings?.alertSound ?? "donation.mp3"}`
+        );
 
-                    setQueue(
-                        (prev) =>
-                            prev.slice(
-                                1,
-                            ),
-                    );
-                }, 2000);
-            };
+        audio.volume = (settings?.alertVolume ?? 100) / 100;
 
-        const audio =
-            new Audio(
-                "/sounds/donation.mp3",
+        // ✅ ถ้าไฟล์เสียงโหลดไม่ได้ → จบ donation เลย
+        audio.onerror = () => {
+            finishDonation();
+        };
+
+        audio.onended = () => {
+            if (
+                !settings?.ttsEnabled ||
+                !nextDonation.message?.trim()
+            ) {
+                finishDonation();
+                return;
+            }
+
+            const speech = new SpeechSynthesisUtterance(
+                nextDonation.message
             );
 
-        audio.onended =
-            () => {
-                if (
-                    !ttsEnabled ||
-                    !nextDonation
-                        .message
-                        ?.trim()
-                ) {
-                    finishDonation();
+            speech.lang = "th-TH";
 
-                    return;
+            const selectedVoice = window.speechSynthesis
+                .getVoices()
+                .find((voice) => voice.name === settings?.ttsVoice);
+
+            if (selectedVoice) {
+                speech.voice = selectedVoice;
+            } else {
+                const thaiVoice = window.speechSynthesis
+                    .getVoices()
+                    .find((voice) => voice.lang === "th-TH");
+
+                if (thaiVoice) {
+                    speech.voice = thaiVoice;
                 }
+            }
 
-                const speech =
-                    new SpeechSynthesisUtterance(
-                        nextDonation.message,
-                    );
-
-                speech.lang =
-                    "th-TH";
-
-                const thaiVoice =
-                    window
-                        .speechSynthesis
-                        .getVoices()
-                        .find(
-                            (
-                                voice,
-                            ) =>
-                                voice.lang ===
-                                "th-TH",
-                        );
-
-                if (
-                    thaiVoice
-                ) {
-                    speech.voice =
-                        thaiVoice;
-                }
-
-                speech.onend =
-                    () => {
-                        finishDonation();
-                    };
-
-                window
-                    .speechSynthesis
-                    .cancel();
-
-                window
-                    .speechSynthesis
-                    .speak(
-                        speech,
-                    );
+            speech.onend = () => {
+                finishDonation();
             };
 
-        audio.play();
-    }, [
-        queue,
-        visible,
-        ttsEnabled,
-    ]);
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(speech);
+        };
+
+        // ✅ handle กรณี browser block autoplay
+        audio.play().catch(() => {
+            finishDonation();
+        });
+
+    }, [queue, visible, settings]);
 
     useEffect(() => {
         return () => {
-            window
-                .speechSynthesis
-                .cancel();
+            window.speechSynthesis.cancel();
         };
     }, []);
 
-    if (
-        !visible ||
-        !donation
-    ) {
+    if (!visible || !donation) {
         return null;
     }
 
     return (
         <div className="overlay">
-            <h3>
-                🎉 NEW DONATION
-            </h3>
-
-            <h1>
-                {donation.name}
-            </h1>
-
-            <h2>
-                ฿{donation.amount}
-            </h2>
-
-            <p>
-                {
-                    donation.message
-                }
-            </p>
+            <h3>🎉 NEW DONATION</h3>
+            <h1>{donation.name}</h1>
+            <h2>฿{donation.amount}</h2>
+            <p>{donation.message}</p>
         </div>
     );
 }

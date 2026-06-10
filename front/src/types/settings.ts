@@ -4,4 +4,8 @@ export interface Settings {
     refreshInterval: number;
     soundEnabled: boolean;
     ttsEnabled: boolean;
+    alertSound: string;
+    alertVolume: number;
+    overlayDuration: number;
+    ttsVoice?: string;
 }

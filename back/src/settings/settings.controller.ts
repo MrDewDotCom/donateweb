@@ -21,4 +21,19 @@ export class SettingsController {
     ) {
         return this.settingsService.updateSettings(updateSettingsDto,);
     }
+
+    @Get()
+    getSetting() {
+        return this.settingsService.getSettings();
+    }
+
+    @Patch()
+    updateSetting(
+        @Body()
+        dto: UpdateSettingsDto,
+    ) {
+        return this.settingsService.updateSettings(
+            dto,
+        );
+    }
 }
