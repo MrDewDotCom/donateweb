@@ -15,6 +15,7 @@ import { SettingsModule } from './settings/settings.module';
     PaymentModule,
     CampaignsModule,
     SettingsModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],

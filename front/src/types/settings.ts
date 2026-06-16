@@ -8,4 +8,5 @@ export interface Settings {
     alertVolume: number;
     overlayDuration: number;
     ttsVoice?: string;
+    promptpayNumber?: string;
 }

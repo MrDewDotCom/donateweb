@@ -23,6 +23,7 @@ function App() {
         <Route path="/goal" element={<GoalWidget />} />
         <Route path="/top" element={<TopDonatorsWidget />} />
         <Route path="/recent" element={<RecentDonationsWidget />} />
+        <Route path="/donate/:id/:token" element={<DonatePage />} />
       </Routes>
     </BrowserRouter>
   );

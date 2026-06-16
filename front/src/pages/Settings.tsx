@@ -308,6 +308,25 @@ export default function SettingsPage() {
 
                 </select>
             </div>
+            <div>
+                <label>
+                    PromptPay Number
+                </label>
+
+                <input
+                    type="text"
+                    value={
+                        settings.promptpayNumber ?? ""
+                    }
+                    onChange={(e) =>
+                        setSettings({
+                            ...settings,
+                            promptpayNumber:
+                                e.target.value,
+                        })
+                    }
+                />
+            </div>
 
             <button
                 onClick={
@@ -332,6 +351,8 @@ export default function SettingsPage() {
             >
                 Test Sound
             </button>
+
+
         </div>
     );
 }

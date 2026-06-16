@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { createDonation } from "../services/donation.service";
+import { useEffect, useState } from "react";
+import { createDonation, getDonation } from "../services/donation.service";
+import { useParams, useNavigate } from "react-router-dom";
 
 
 export default function DonatePage() {
@@ -8,14 +9,48 @@ export default function DonatePage() {
     const [amount, setAmount] = useState(20);
     const [qrCode, setQrCode] = useState("");
     const [status, setStatus] = useState("");
+    const [isPaid, setIsPaid] = useState(false);
+    const { id, token } = useParams();
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (!id) return;
+
+        const load = async () => {
+            const res = await getDonation(Number(id), token!);
+            setQrCode(res.data.qrCode);
+            setStatus(res.data.status);
+            setName(res.data.name);
+            setMessage(res.data.message ?? "");
+            setAmount(res.data.amount);
+        };
+
+        load();
+    }, [id, token]);
+
+    useEffect(() => {
+        if (!token) return;
+
+        const interval = setInterval(async () => {
+            try {
+                const res = await getDonation(Number(id), token!);
+
+                if (res.data.status === "paid") {
+                    setIsPaid(true);
+                    clearInterval(interval);
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [token, id]);
 
     const handleSubmit = async () => {
         try {
-            const res = await createDonation(
-                name,
-                message,
-                amount
-            );
+            const res = await createDonation(name, message, amount);
+            navigate(`/donate/${res.data.id}/${res.data.accessToken}`);
 
             setQrCode(res.data.qrCode);
             setStatus(res.data.status);
@@ -61,17 +96,18 @@ export default function DonatePage() {
                 Submit
             </button>
 
-            {qrCode && (
+            {!isPaid && qrCode && (
                 <div>
                     <h2>สแกนเพื่อชำระเงิน</h2>
-
-                    <img
-                        src={qrCode}
-                        alt="PromptPay QR"
-                        width={300}
-                    />
-
+                    <img src={qrCode} alt="QR" width={300} />
                     <p>สถานะ: {status}</p>
+                </div>
+            )}
+
+            {isPaid && (
+                <div>
+                    <h2>✅ Payment Success</h2>
+                    <p>ขอบคุณสำหรับการสนับสนุน</p>
                 </div>
             )}
         </div>

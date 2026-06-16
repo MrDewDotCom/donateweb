@@ -16,6 +16,7 @@ model Donation {
   createdAt DateTime  @default(now())
   paidAt    DateTime?
   qrCode    String?
+  accessToken String? @unique
 }
 
 model Campaign {
@@ -40,4 +41,5 @@ model Setting {
   alertVolume      Int     @default(100)
   overlayDuration  Int     @default(2)
   ttsVoice         String?
+  promptpayNumber  String?
 }

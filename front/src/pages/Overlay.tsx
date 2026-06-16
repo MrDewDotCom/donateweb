@@ -63,7 +63,6 @@ export default function OverlayPage() {
 
         audio.volume = (settings?.alertVolume ?? 100) / 100;
 
-        // ✅ ถ้าไฟล์เสียงโหลดไม่ได้ → จบ donation เลย
         audio.onerror = () => {
             finishDonation();
         };

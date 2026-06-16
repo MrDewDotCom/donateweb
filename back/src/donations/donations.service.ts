@@ -4,6 +4,7 @@ import { UpdateDonationDto } from './dto/update-donation.dto';
 import { PrismaService } from 'prisma/src/prisma.service';
 import { PaymentService } from 'src/payment/payment.service';
 import { DonationsGateway } from './donations.gateway';
+import { randomUUID } from "crypto";
 
 @Injectable()
 export class DonationsService {
@@ -14,22 +15,31 @@ export class DonationsService {
   ) { }
 
   async create(createDonationDto: CreateDonationDto) {
-    const qrCode = await this.paymentService.generateQRCode(
-      process.env.PROMPTPAY_PHONE!,
-      createDonationDto.amount,
-    );
+    const settings =
+      await this.prisma.setting.findFirst();
 
-    const donation = await this.prisma.donation.create({
-      data: {
-        ...createDonationDto,
-        qrCode,
-      },
-    });
+    if (!settings?.promptpayNumber) {
+      throw new Error(
+        "PromptPay number not configured",
+      );
+    }
+
+    const qrCode =
+      await this.paymentService.generateQr(
+        settings.promptpayNumber,
+        createDonationDto.amount,
+      );
+
+    const donation =
+      await this.prisma.donation.create({
+        data: { ...createDonationDto, qrCode, accessToken: randomUUID(), },
+      });
 
     console.log(donation);
 
     return {
       id: donation.id,
+      accessToken: donation.accessToken,
       status: donation.status,
       qrCode: donation.qrCode,
     };
@@ -46,6 +56,19 @@ export class DonationsService {
   findOne(id: number) {
     return this.prisma.donation.findUnique({
       where: { id },
+    });
+  }
+
+  async findByToken(
+    id: number,
+    token: string,
+  ) {
+    return this.prisma.donation.findFirst({
+      where: {
+        id,
+        accessToken:
+          token,
+      },
     });
   }
 

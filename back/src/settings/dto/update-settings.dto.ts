@@ -32,4 +32,6 @@ export class UpdateSettingsDto {
     @IsOptional()
     @IsInt()
     overlayDuration?: number;
+
+    promptpayNumber?: string;
 }

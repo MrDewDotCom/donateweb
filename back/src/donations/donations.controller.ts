@@ -38,4 +38,19 @@ export class DonationsController {
   remove(@Param('id') id: string) {
     return this.donationsService.remove(+id);
   }
+
+  @Get(":id/:token")
+  findByToken(
+    @Param("id")
+    id: string,
+
+    @Param("token")
+    token: string,
+  ) {
+    return this.donationsService
+      .findByToken(
+        +id,
+        token,
+      );
+  }
 }

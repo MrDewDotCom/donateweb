@@ -29,7 +29,8 @@ export const markDonationAsPaid = (
     );
 };
 
-export const getRecentDonations = () =>
-    axios.get(
-        "http://localhost:3000/donations/recent"
-    );
+export const getRecentDonations =
+    () => axios.get("http://localhost:3000/donations/recent");
+
+export const getDonation =
+    (id: number, token: string,) => axios.get(`${API_URL}/${id}/${token}`,);
