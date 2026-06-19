@@ -17,6 +17,8 @@ model Donation {
   paidAt    DateTime?
   qrCode    String?
   accessToken String? @unique
+  slipImage String?
+  transRef    String?
 }
 
 model Campaign {

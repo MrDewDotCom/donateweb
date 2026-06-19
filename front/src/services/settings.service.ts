@@ -1,7 +1,6 @@
 import axios from "axios";
-
-const API_URL =
-    "http://localhost:3000";
+import { API_URL } from "../config/api";
+import { adminApi } from "./admin-api";
 
 export const getSettings =
     () =>
@@ -11,7 +10,7 @@ export const getSettings =
 
 export const updateSettings =
     (data: any) =>
-        axios.patch(
+        adminApi.patch(
             `${API_URL}/settings`,
             data,
         );

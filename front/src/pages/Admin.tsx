@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { Donation } from "../types/donation";
 import { getDonations, markDonationAsPaid, } from "../services/donation.service";
 import SettingsPanel from "../components/SettingsPanel";
+import { API_URL } from "../config/api";
 
 export default function AdminPage() {
     const [donations, setDonations] =
@@ -34,9 +35,17 @@ export default function AdminPage() {
                     <p>{d.name}</p>
                     <p>{d.amount} บาท</p>
                     <p>{d.status}</p>
-                    <button
-                        onClick={() => markAsPaid(d.id)}
-                    >
+                    {
+                        d.slipImage && (
+                            <div>
+                                <a href={`${API_URL}${d.slipImage}`}
+                                    target="_blank" rel="noreferrer">
+                                    View Slip
+                                </a>
+                            </div>
+                        )
+                    }
+                    <button onClick={() => markAsPaid(d.id)}>
                         Mark as Paid
                     </button>
                 </div>

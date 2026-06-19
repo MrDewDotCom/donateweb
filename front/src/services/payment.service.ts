@@ -1,7 +1,6 @@
 import axios from "axios";
+import { API_URL } from "../config/api";
 
-const API_URL =
-    "http://localhost:3000";
 
 export const getQrCode =
     (

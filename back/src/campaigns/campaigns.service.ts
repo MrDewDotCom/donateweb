@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/src/prisma.service';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import { sanitizeDonations } from 'src/common/utils/donation.util';
 
 @Injectable()
 export class CampaignsService {
@@ -121,7 +123,7 @@ export class CampaignsService {
             return [];
         }
 
-        return this.prisma.donation.findMany({
+        const donations = await this.prisma.donation.findMany({
             where: {
                 status: 'paid',
                 paidAt: {
@@ -134,11 +136,13 @@ export class CampaignsService {
             },
             take: campaign.recentLimit,
         });
+
+        return sanitizeDonations(donations);
     }
 
     async updateCampaign(
         id: number,
-        data: any,
+        data: UpdateCampaignDto,
     ) {
         return this.prisma.campaign.update({
             where: { id },

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
+import axios from "axios";
 import { createDonation, getDonation } from "../services/donation.service";
 import { useParams, useNavigate } from "react-router-dom";
+import { uploadSlip } from "../services/upload.service";
 
 
 export default function DonatePage() {
@@ -10,8 +12,10 @@ export default function DonatePage() {
     const [qrCode, setQrCode] = useState("");
     const [status, setStatus] = useState("");
     const [isPaid, setIsPaid] = useState(false);
+    const [slipFile, setSlipFile] = useState<File | null>(null);
     const { id, token } = useParams();
     const navigate = useNavigate();
+    const allowed = ["image/jpeg", "image/png", "image/webp",];
 
     useEffect(() => {
         if (!id) return;
@@ -64,6 +68,59 @@ export default function DonatePage() {
         }
     };
 
+    const handleUploadSlip = async () => {
+        if (!slipFile) {
+            alert("เลือกสลิปก่อน");
+            return;
+        }
+
+        if (!id) {
+            alert("ไม่พบข้อมูล donation");
+            return;
+        }
+
+        if (slipFile.size > 5 * 1024 * 1024) {
+            alert("ไฟล์ต้องไม่เกิน 5MB",);
+            return;
+        }
+        if (!allowed.includes(slipFile.type,)
+        ) {
+            alert("รองรับเฉพาะ JPG PNG WEBP",);
+            return;
+        }
+
+        if (!token) {
+            alert("ไม่พบ token");
+            return;
+        }
+
+        try {
+            const res = await uploadSlip(slipFile, Number(id), token);
+
+            if (res.data.donation?.status === "paid") {
+                setStatus("paid");
+                setIsPaid(true);
+            }
+
+            alert("ตรวจสอบสลิปสำเร็จ");
+            setSlipFile(null);
+        } catch (err: unknown) {
+            console.error(err);
+            let message = "ตรวจสอบสลิปไม่ผ่าน";
+
+            if (axios.isAxiosError(err) && err.response?.data) {
+                const data = err.response.data as { message?: string | { message?: string } };
+                if (typeof data.message === "string") {
+                    message = data.message;
+                } else if (data.message?.message) {
+                    message = data.message.message;
+                }
+            }
+
+            alert(message);
+        }
+    };
+
     return (
         <div>
             <h1>Donate</h1>
@@ -101,6 +158,17 @@ export default function DonatePage() {
                     <h2>สแกนเพื่อชำระเงิน</h2>
                     <img src={qrCode} alt="QR" width={300} />
                     <p>สถานะ: {status}</p>
+
+                    <br />
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setSlipFile(e.target.files?.[0] ?? null)}
+                    />
+
+                    <button onClick={handleUploadSlip}>
+                        Upload Slip
+                    </button>
                 </div>
             )}
 
@@ -110,6 +178,7 @@ export default function DonatePage() {
                     <p>ขอบคุณสำหรับการสนับสนุน</p>
                 </div>
             )}
+
         </div>
     );
 }

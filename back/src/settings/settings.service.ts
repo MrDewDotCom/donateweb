@@ -23,7 +23,7 @@ export class SettingsService {
         return settings;
     }
 
-    async updateSettings(data: any) {
+    async updateSettings(data: UpdateSettingsDto) {
         const settings =
             await this.getSettings();
 

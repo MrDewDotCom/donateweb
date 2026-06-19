@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Param, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
 import { CampaignsService } from './campaigns.service';
+import { UpdateCampaignDto } from './dto/update-campaign.dto';
+import { AdminApiKeyGuard } from 'src/common/guards/admin-api-key.guard';
 
 @Controller('campaigns')
 export class CampaignsController {
@@ -32,10 +34,11 @@ export class CampaignsController {
             .getRecentDonations();
     }
 
+    @UseGuards(AdminApiKeyGuard)
     @Patch(':id')
     updateCampaign(
         @Param('id') id: string,
-        @Body() body: any,
+        @Body() body: UpdateCampaignDto,
     ) {
         return this.campaignsService
             .updateCampaign(+id, body);

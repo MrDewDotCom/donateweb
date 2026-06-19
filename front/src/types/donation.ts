@@ -7,4 +7,5 @@ export interface Donation {
     qrCode?: string | null;
     createdAt: string;
     paidAt?: string | null;
+    slipImage?: string;
 }

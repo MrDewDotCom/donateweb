@@ -1,36 +1,23 @@
 import axios from "axios";
+import { API_URL } from "../config/api";
+import { adminApi } from "./admin-api";
 
-const API_URL = "http://localhost:3000/donations";
+const DONATION_API = `${API_URL}/donations`;
 
 export const getDonations = () => {
-    return axios.get(API_URL);
+    return adminApi.get(DONATION_API);
 };
 
-export const createDonation = (
-    name: string,
-    message: string,
-    amount: number
-) => {
-    return axios.post(API_URL, {
-        name,
-        message,
-        amount,
-    });
+export const createDonation = (name: string, message: string, amount: number) => {
+    return axios.post(DONATION_API, { name, message, amount, });
 };
 
-export const markDonationAsPaid = (
-    id: number
-) => {
-    return axios.patch(
-        `${API_URL}/${id}`,
-        {
-            status: "paid",
-        }
-    );
+export const markDonationAsPaid = (id: number) => {
+    return adminApi.patch(`${DONATION_API}/${id}/mark-paid`);
 };
 
 export const getRecentDonations =
-    () => axios.get("http://localhost:3000/donations/recent");
+    () => axios.get(`${DONATION_API}/recent`);
 
 export const getDonation =
-    (id: number, token: string,) => axios.get(`${API_URL}/${id}/${token}`,);
+    (id: number, token: string,) => axios.get(`${DONATION_API}/${id}/${token}`,);

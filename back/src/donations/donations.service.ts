@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { CreateDonationDto } from './dto/create-donation.dto';
-import { UpdateDonationDto } from './dto/update-donation.dto';
 import { PrismaService } from 'prisma/src/prisma.service';
 import { PaymentService } from 'src/payment/payment.service';
 import { DonationsGateway } from './donations.gateway';
-import { randomUUID } from "crypto";
+import { randomUUID } from 'crypto';
+import { sanitizeDonation, sanitizeDonations } from 'src/common/utils/donation.util';
 
 @Injectable()
 export class DonationsService {
@@ -15,27 +15,20 @@ export class DonationsService {
   ) { }
 
   async create(createDonationDto: CreateDonationDto) {
-    const settings =
-      await this.prisma.setting.findFirst();
+    const settings = await this.prisma.setting.findFirst();
 
     if (!settings?.promptpayNumber) {
-      throw new Error(
-        "PromptPay number not configured",
-      );
+      throw new Error('PromptPay number not configured');
     }
 
-    const qrCode =
-      await this.paymentService.generateQr(
-        settings.promptpayNumber,
-        createDonationDto.amount,
-      );
+    const qrCode = await this.paymentService.generateQr(
+      settings.promptpayNumber,
+      createDonationDto.amount,
+    );
 
-    const donation =
-      await this.prisma.donation.create({
-        data: { ...createDonationDto, qrCode, accessToken: randomUUID(), },
-      });
-
-    console.log(donation);
+    const donation = await this.prisma.donation.create({
+      data: { ...createDonationDto, qrCode, accessToken: randomUUID() },
+    });
 
     return {
       id: donation.id,
@@ -45,64 +38,87 @@ export class DonationsService {
     };
   }
 
-  findAll() {
-    return this.prisma.donation.findMany({
+  async findAll() {
+    const donations = await this.prisma.donation.findMany({
       orderBy: {
         createdAt: 'desc',
       },
     });
+
+    return sanitizeDonations(donations);
   }
 
-  findOne(id: number) {
-    return this.prisma.donation.findUnique({
+  async findOne(id: number) {
+    const donation = await this.prisma.donation.findUnique({
       where: { id },
     });
+
+    if (!donation) {
+      return null;
+    }
+
+    return sanitizeDonation(donation);
   }
 
-  async findByToken(
-    id: number,
-    token: string,
-  ) {
-    return this.prisma.donation.findFirst({
+  async findByToken(id: number, token: string) {
+    const donation = await this.prisma.donation.findFirst({
       where: {
         id,
-        accessToken:
-          token,
+        accessToken: token,
       },
     });
+
+    if (!donation) {
+      return null;
+    }
+
+    return sanitizeDonation(donation);
   }
 
-  async update(
+  async confirmPaymentFromSlip(
     id: number,
-    updateDonationDto: UpdateDonationDto,
+    slipImage: string,
+    transRef?: string,
   ) {
-    const data: any = {
-      ...updateDonationDto,
-    };
+    const donation = await this.prisma.donation.update({
+      where: { id },
+      data: {
+        slipImage,
+        status: 'paid',
+        paidAt: new Date(),
+        transRef: transRef ?? null,
+      },
+    });
 
-    if (updateDonationDto.status === 'paid') {
-      data.paidAt = new Date();
+    this.donationsGateway.emitDonationPaid(donation);
+
+    return sanitizeDonation(donation);
+  }
+
+  async markAsPaidByAdmin(id: number) {
+    const existing = await this.prisma.donation.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      return null;
     }
 
-    const donation =
-      await this.prisma.donation.update({
-        where: { id },
-        data,
-      });
-
-    if (donation.status === 'paid') {
-      console.log(
-        'EMIT:',
-        donation.id,
-        donation.name,
-      );
-
-      this.donationsGateway.emitDonationPaid(
-        donation,
-      );
+    if (existing.status === 'paid') {
+      return sanitizeDonation(existing);
     }
 
-    return donation;
+    const donation = await this.prisma.donation.update({
+      where: { id },
+      data: {
+        status: 'paid',
+        paidAt: new Date(),
+      },
+    });
+
+    this.donationsGateway.emitDonationPaid(donation);
+
+    return sanitizeDonation(donation);
   }
 
   remove(id: number) {
@@ -112,16 +128,16 @@ export class DonationsService {
   }
 
   async getRecentDonations() {
-    return this.prisma.donation.findMany({
+    const donations = await this.prisma.donation.findMany({
       where: {
-        status: "paid",
+        status: 'paid',
       },
-
       orderBy: {
-        paidAt: "desc",
+        paidAt: 'desc',
       },
-
       take: 5,
     });
+
+    return sanitizeDonations(donations);
   }
 }
