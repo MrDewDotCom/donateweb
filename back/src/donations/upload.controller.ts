@@ -58,18 +58,24 @@ export class UploadController {
             throw new BadRequestException("ไฟล์ไม่ใช่รูปภาพที่รองรับ");
         }
 
-        const donation = await this.donationsService.findByToken(
+        const result = await this.donationsService.findByToken(
             Number(donationId),
             token,
         );
 
-        if (!donation) {
+        if (result.state === "not_found") {
             throw new NotFoundException("ไม่พบข้อมูลการบริจาค");
         }
 
-        if (donation.status === "paid") {
+        if (result.state === "paid") {
             throw new BadRequestException("การบริจาคนี้ชำระเงินแล้ว");
         }
+
+        if (result.state === "expired") {
+            throw new BadRequestException("ลิงก์หมดอายุแล้ว กรุณาสร้างการบริจาคใหม่");
+        }
+
+        const donation = result.donation;
 
         // เก็บผลลัพธ์จาก SlipOK ไว้ใช้ transRef ต่อ
         let transRef: string | undefined;

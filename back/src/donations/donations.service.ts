@@ -28,7 +28,12 @@ export class DonationsService {
     );
 
     const donation = await this.prisma.donation.create({
-      data: { ...createDonationDto, qrCode, accessToken: randomUUID() },
+      data: {
+        ...createDonationDto,
+        qrCode,
+        accessToken: randomUUID(),
+        expiresAt: new Date(Date.now() + 15 * 60 * 1000), // ลิงก์มีอายุ 15 นาทีจากตอนสร้าง
+      },
     });
 
     return {
@@ -36,6 +41,7 @@ export class DonationsService {
       accessToken: donation.accessToken,
       status: donation.status,
       qrCode: donation.qrCode,
+      expiresAt: donation.expiresAt, // เพิ่ม: frontend ใช้ทำตัวจับเวลา 15 นาที
     };
   }
 
@@ -70,6 +76,11 @@ export class DonationsService {
     };
   }
 
+  // คืนค่าเป็น state ที่ชัดเจน เพื่อให้ frontend รู้ว่าจะแสดงหน้าไหน:
+  // - not_found  → ไม่มี donation นี้จริง (id/token ผิด)
+  // - paid       → จ่ายแล้ว → แสดงหน้าขอบคุณ
+  // - expired    → เกิน 15 นาทีจากตอนสร้างแล้วและยังไม่จ่าย → แสดงหน้า "ลิงก์หมดอายุ"
+  // - active     → ยังใช้งานได้ → แสดงหน้า QR + Upload ตามปกติ
   async findByToken(id: number, token: string) {
     const donation = await this.prisma.donation.findFirst({
       where: {
@@ -79,10 +90,18 @@ export class DonationsService {
     });
 
     if (!donation) {
-      return null;
+      return { state: 'not_found' as const };
     }
 
-    return sanitizeDonation(donation);
+    if (donation.status === 'paid') {
+      return { state: 'paid' as const, donation: sanitizeDonation(donation) };
+    }
+
+    if (donation.expiresAt && donation.expiresAt.getTime() < Date.now()) {
+      return { state: 'expired' as const };
+    }
+
+    return { state: 'active' as const, donation: sanitizeDonation(donation) };
   }
 
   // เพิ่ม parameter transRef (optional) เพื่อบันทึก transaction reference จาก SlipOK

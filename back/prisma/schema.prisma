@@ -19,6 +19,7 @@ model Donation {
   accessToken String? @unique
   slipImage String?
   transRef    String?
+  expiresAt   DateTime?
 }
 
 model Campaign {
