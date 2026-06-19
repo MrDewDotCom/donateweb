@@ -10,6 +10,7 @@ import {
     MaxFileSizeValidator,
     FileTypeValidator,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import * as fs from "fs";
@@ -26,6 +27,10 @@ export class UploadController {
         private readonly donationsService: DonationsService,
     ) { }
 
+    // จำกัดเข้มสุดในระบบ: 5 ครั้ง / นาที ต่อ IP
+    // เพราะทุกครั้งที่ผ่าน endpoint นี้คือยิง SlipOK API จริง (มี quota จำกัด/เสียเงิน)
+    // และยังป้องกัน brute-force donationId+token คู่กันไปด้วย
+    @Throttle({ default: { limit: 5, ttl: 60000 } })
     @Post()
     @UseInterceptors(
         FileInterceptor("file", {
@@ -66,6 +71,7 @@ export class UploadController {
             throw new BadRequestException("การบริจาคนี้ชำระเงินแล้ว");
         }
 
+        // เก็บผลลัพธ์จาก SlipOK ไว้ใช้ transRef ต่อ
         let transRef: string | undefined;
 
         try {
@@ -75,7 +81,7 @@ export class UploadController {
                 amount: donation.amount,
             });
 
-            transRef = result.transRef;
+            transRef = result.transRef; // เพิ่ม: เก็บ transRef จาก SlipOK
         } catch (err) {
             if (err instanceof SlipOkVerificationException) {
                 throw new BadRequestException({
@@ -102,7 +108,7 @@ export class UploadController {
             const updated = await this.donationsService.confirmPaymentFromSlip(
                 donation.id,
                 slipImage,
-                transRef,
+                transRef, // เพิ่ม: ส่ง transRef เข้า service
             );
 
             return {
@@ -115,6 +121,8 @@ export class UploadController {
                 },
             };
         } catch (err) {
+            // ถ้า confirm ไม่สำเร็จ (เช่น race condition / มีคน confirm ไปก่อนแล้ว)
+            // ลบไฟล์ที่เขียนไปแล้วทิ้งอัตโนมัติ ไม่ให้เป็นไฟล์ขยะค้างใน /uploads/
             fs.unlink(dest, () => { });
             throw err;
         }
