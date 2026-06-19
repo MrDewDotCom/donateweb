@@ -11,29 +11,22 @@ import { PaymentModule } from './payment/payment.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { SettingsModule } from './settings/settings.module';
 import { SlipokModule } from './slipok/slipok.module';
-import { ServeStaticModule } from "@nestjs/serve-static";
-import { join } from "path";
+// ServeStaticModule ถูกลบออก — /uploads/ ไม่ public แล้ว
+// ตอนนี้เสิร์ฟผ่าน UploadsServeController ที่เช็ค signed URL ก่อนทุกครั้ง
 
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // ค่า default: ทุก request จำกัดที่ 60 ครั้ง / 60 วินาที ต่อ IP
+    // endpoint ที่เสี่ยงสูง (เช่น /upload, POST /donations) จะ override เข้มกว่านี้
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 60,
       },
     ]),
     CommonModule,
-    ServeStaticModule.forRoot({
-      rootPath: join(
-        process.cwd(),
-        "uploads",
-      ),
-
-      serveRoot:
-        "/uploads",
-    }),
 
     PrismaModule,
     DonationsModule,
@@ -45,6 +38,7 @@ import { join } from "path";
   controllers: [AppController],
   providers: [
     AppService,
+    // ใช้ ThrottlerGuard เป็น guard เริ่มต้นกับทุก route ในระบบ
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

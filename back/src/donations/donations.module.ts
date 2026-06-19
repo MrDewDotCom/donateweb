@@ -6,6 +6,7 @@ import { PaymentModule } from 'src/payment/payment.module';
 import { DonationsGateway } from './donations.gateway';
 import { UploadController } from "./upload.controller";
 import { SlipokModule } from 'src/slipok/slipok.module';
+import { UploadsServeController } from 'src/common/controllers/upload-serve.controller';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { SlipokModule } from 'src/slipok/slipok.module';
   controllers: [
     DonationsController,
     UploadController,
+    UploadsServeController,
   ],
   providers: [
     DonationsService,
