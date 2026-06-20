@@ -11,6 +11,7 @@ import { PaymentModule } from './payment/payment.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { SettingsModule } from './settings/settings.module';
 import { SlipokModule } from './slipok/slipok.module';
+import { AuthModule } from './auth/auth.module';
 // ServeStaticModule ถูกลบออก — /uploads/ ไม่ public แล้ว
 // ตอนนี้เสิร์ฟผ่าน UploadsServeController ที่เช็ค signed URL ก่อนทุกครั้ง
 
@@ -34,6 +35,7 @@ import { SlipokModule } from './slipok/slipok.module';
     CampaignsModule,
     SettingsModule,
     SlipokModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
