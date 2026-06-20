@@ -1,0 +1,230 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.card {
+    width: 100%;
+    max-width: 420px;
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 24px;
+    color: #f1f1f6;
+    text-align: center;
+}
+
+.field {
+    margin-bottom: 16px;
+}
+
+.label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: #a0a0b8;
+    margin-bottom: 6px;
+}
+
+.input,
+.textarea {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #34344f;
+    border-radius: 10px;
+    font-size: 15px;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+    background: #14141f;
+    color: #f1f1f6;
+}
+
+.input::placeholder,
+.textarea::placeholder {
+    color: #6b6b85;
+}
+
+.input:focus,
+.textarea:focus {
+    outline: none;
+    border-color: #8b5cf6;
+}
+
+.textareaWrap {
+    position: relative;
+}
+
+.textarea {
+    resize: none;
+    min-height: 70px;
+    padding-bottom: 24px;
+}
+
+.charCount {
+    position: absolute;
+    right: 10px;
+    bottom: 8px;
+    font-size: 11px;
+    color: #6b6b85;
+    background: #14141f;
+    padding: 0 4px;
+    pointer-events: none;
+}
+
+.amountRow {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.amountChip {
+    flex: 1;
+    padding: 10px 0;
+    border: 1px solid #34344f;
+    border-radius: 10px;
+    background: #14141f;
+    color: #d0d0e0;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.amountChip.active {
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+    color: #fff;
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 10px;
+    background: #8b5cf6;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.submitBtn:hover {
+    background: #7c3aed;
+}
+
+.submitBtn:disabled {
+    background: #44415c;
+    color: #8a8aa0;
+    cursor: not-allowed;
+}
+
+/* QR / active state */
+.qrWrap {
+    text-align: center;
+}
+
+.qrImg {
+    width: 220px;
+    height: 220px;
+    border-radius: 12px;
+    border: 1px solid #2c2c44;
+    margin: 8px auto 16px;
+    display: block;
+    background: #fff;
+    padding: 6px;
+    box-sizing: border-box;
+}
+
+.timerBadge {
+    display: inline-block;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: #3a2e14;
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.timerBadge.urgent {
+    background: #3a1414;
+    color: #f87171;
+}
+
+.infoBox {
+    background: #14141f;
+    border: 1px solid #2c2c44;
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    color: #c0c0d0;
+    text-align: left;
+}
+
+.infoBox p {
+    margin: 4px 0;
+}
+
+.fileInput {
+    width: 100%;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: #c0c0d0;
+}
+
+/* Status pages: paid / expired / not_found */
+.statusWrap {
+    text-align: center;
+    padding: 24px 0;
+}
+
+.statusIcon {
+    font-size: 48px;
+    margin-bottom: 12px;
+}
+
+.statusTitle {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #f1f1f6;
+}
+
+.statusText {
+    color: #a0a0b8;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.secondaryBtn {
+    padding: 12px 24px;
+    border-radius: 10px;
+    border: 1px solid #8b5cf6;
+    background: transparent;
+    color: #a78bfa;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.secondaryBtn:hover {
+    background: #2a1f4a;
+}
+
+.loadingWrap {
+    text-align: center;
+    color: #8a8aa0;
+    padding: 40px 0;
+}

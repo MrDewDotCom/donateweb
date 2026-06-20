@@ -3,11 +3,14 @@ import axios from "axios";
 import { createDonation, getDonation } from "../services/donation.service";
 import { useParams, useNavigate } from "react-router-dom";
 import { uploadSlip } from "../services/upload.service";
+import styles from "../components/donate.module.css";
 
 type PageState = "form" | "active" | "paid" | "expired" | "not_found" | "loading";
 
+const QUICK_AMOUNTS = [20, 50, 100, 200];
+
 export default function DonatePage() {
-    const [name, setName] = useState("");
+    const [name, setName] = useState("Anonymous");
     const [message, setMessage] = useState("");
     const [amount, setAmount] = useState(20);
     const [qrCode, setQrCode] = useState("");
@@ -15,12 +18,13 @@ export default function DonatePage() {
     const [pageState, setPageState] = useState<PageState>("form");
     const [expiresAt, setExpiresAt] = useState<string | null>(null);
     const [remainingSec, setRemainingSec] = useState<number | null>(null);
+    const [submitting, setSubmitting] = useState(false);
+    const [uploading, setUploading] = useState(false);
 
     const { id, token } = useParams();
     const navigate = useNavigate();
     const allowed = ["image/jpeg", "image/png", "image/webp"];
 
-    // เก็บ interval ไว้ใน ref เพื่อ clear ได้จากหลายที่
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -29,7 +33,6 @@ export default function DonatePage() {
         if (countdownRef.current) clearInterval(countdownRef.current);
     };
 
-    // โหลดข้อมูล donation ตาม id/token ในลิงก์ — เช็ค state ที่ backend ส่งมาก่อนเสมอ
     useEffect(() => {
         if (!id || !token) {
             setPageState("form");
@@ -58,7 +61,6 @@ export default function DonatePage() {
                     return;
                 }
 
-                // state === "active"
                 const donation = data.donation;
                 setQrCode(donation.qrCode);
                 setName(donation.name);
@@ -77,7 +79,6 @@ export default function DonatePage() {
         return () => clearTimers();
     }, [id, token]);
 
-    // Poll เช็คสถานะทุก 3 วิ — เฉพาะตอน active เท่านั้น
     useEffect(() => {
         clearTimers();
 
@@ -107,7 +108,6 @@ export default function DonatePage() {
         };
     }, [pageState, id, token]);
 
-    // นับเวลาถอยหลังจาก expiresAt — ถึงเวลาแล้วเปลี่ยนเป็นหน้า expired ทันที ไม่ต้อง refresh
     useEffect(() => {
         if (pageState !== "active" || !expiresAt) {
             setRemainingSec(null);
@@ -138,12 +138,21 @@ export default function DonatePage() {
     }, [pageState, expiresAt]);
 
     const handleSubmit = async () => {
+        if (!name.trim()) {
+            alert("กรุณากรอกชื่อ");
+            return;
+        }
+
+        setSubmitting(true);
+
         try {
             const res = await createDonation(name, message, amount);
             navigate(`/donate/${res.data.id}/${res.data.accessToken}`);
         } catch (error) {
             console.error(error);
             alert("เกิดข้อผิดพลาด");
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -173,6 +182,8 @@ export default function DonatePage() {
             return;
         }
 
+        setUploading(true);
+
         try {
             const res = await uploadSlip(slipFile, Number(id), token);
 
@@ -194,7 +205,6 @@ export default function DonatePage() {
                 if (typeof data.message === "string") {
                     message = data.message;
 
-                    // ถ้าลิงก์หมดอายุไปแล้วระหว่างอัปโหลด ให้สลับหน้าไปเลย
                     if (message.includes("หมดอายุ")) {
                         setPageState("expired");
                     }
@@ -204,13 +214,13 @@ export default function DonatePage() {
             }
 
             alert(message);
+        } finally {
+            setUploading(false);
         }
     };
 
     const formatTime = (sec: number) => {
-        const m = Math.floor(sec / 60)
-            .toString()
-            .padStart(2, "0");
+        const m = Math.floor(sec / 60).toString().padStart(2, "0");
         const s = (sec % 60).toString().padStart(2, "0");
         return `${m}:${s}`;
     };
@@ -218,100 +228,181 @@ export default function DonatePage() {
     // ---------- หน้าจอตาม state ----------
 
     if (pageState === "loading") {
-        return <p>กำลังโหลด...</p>;
+        return (
+            <div className={styles.page}>
+                <div className={styles.card}>
+                    <div className={styles.loadingWrap}>กำลังโหลด...</div>
+                </div>
+            </div>
+        );
     }
 
     if (pageState === "not_found") {
         return (
-            <div>
-                <h2>ไม่พบข้อมูลการบริจาคนี้</h2>
-                <button onClick={() => navigate("/donate")}>
-                    สร้างการบริจาคใหม่
-                </button>
+            <div className={styles.page}>
+                <div className={styles.card}>
+                    <div className={styles.statusWrap}>
+                        <div className={styles.statusIcon}>❓</div>
+                        <div className={styles.statusTitle}>ลิงก์นี้หมดอายุเเล้ว</div>
+                        <p className={styles.statusText}>
+                            ขอบคุณสำหรับค่าขนมเเต่ลิ้งนี้หมดอายุเเล้ว
+                        </p>
+                        <button
+                            className={styles.secondaryBtn}
+                            onClick={() => navigate("/")}
+                        >
+                            โดเนทใหม่ที่นี่
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
 
     if (pageState === "expired") {
         return (
-            <div>
-                <h2> ลิงก์หมดอายุแล้ว</h2>
-                <p>กรุณาสร้างการบริจาคใหม่เพื่อรับ QR Code อีกครั้ง</p>
-                <button onClick={() => navigate("/donate")}>
-                    สร้างการบริจาคใหม่
-                </button>
+            <div className={styles.page}>
+                <div className={styles.card}>
+                    <div className={styles.statusWrap}>
+                        <div className={styles.statusIcon}>⏰</div>
+                        <div className={styles.statusTitle}>ลิงก์หมดอายุแล้ว</div>
+                        <p className={styles.statusText}>
+                            กรุณาสร้างการโดเนทใหม่เพื่อรับ QR Code อีกครั้ง
+                        </p>
+                        <button
+                            className={styles.secondaryBtn}
+                            onClick={() => navigate("/")}
+                        >
+                            สร้างการโดเนทใหม่
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
 
     if (pageState === "paid") {
         return (
-            <div>
-                <h2>✅ Payment Success</h2>
-                <p>ขอบคุณสำหรับการสนับสนุน</p>
+            <div className={styles.page}>
+                <div className={styles.card}>
+                    <div className={styles.statusWrap}>
+                        <div className={styles.statusIcon}>✅</div>
+                        <div className={styles.statusTitle}>การบริจาคสำเร็จ</div>
+                        <p className={styles.statusText}>ขอบคุณสำหรับการสนับสนุน 💙</p>
+                    </div>
+                </div>
             </div>
         );
     }
 
     if (pageState === "active") {
+        const isUrgent = remainingSec !== null && remainingSec <= 120;
+
         return (
-            <div>
-                <h2>สแกนเพื่อชำระเงิน</h2>
-                <img src={qrCode} alt="QR" width={300} />
+            <div className={styles.page}>
+                <div className={styles.card}>
+                    <div className={styles.qrWrap}>
+                        <h2 className={styles.title}>สแกนเพื่อชำระเงิน</h2>
 
-                {remainingSec !== null && (
-                    <p>
-                        เหลือเวลาอีก <strong>{formatTime(remainingSec)}</strong> นาที
-                        ก่อนลิงก์หมดอายุ
-                    </p>
-                )}
+                        {remainingSec !== null && (
+                            <span
+                                className={`${styles.timerBadge} ${isUrgent ? styles.urgent : ""}`}
+                            >
+                                ⏳ เหลือเวลา {formatTime(remainingSec)} นาที
+                            </span>
+                        )}
 
-                <p>ชื่อ: {name}</p>
-                {message && <p>ข้อความ: {message}</p>}
-                <p>จำนวน: {amount} บาท</p>
+                        <img src={qrCode} alt="QR Code" className={styles.qrImg} />
 
-                <br />
-                <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setSlipFile(e.target.files?.[0] ?? null)}
-                />
+                        <div className={styles.infoBox}>
+                            <p>ชื่อ: {name}</p>
+                            {message && <p>ข้อความ: {message}</p>}
+                            <p>จำนวน: {amount.toLocaleString()} บาท</p>
+                        </div>
 
-                <button onClick={handleUploadSlip}>Upload Slip</button>
+                        <input
+                            className={styles.fileInput}
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setSlipFile(e.target.files?.[0] ?? null)}
+                        />
+
+                        <button
+                            className={styles.submitBtn}
+                            onClick={handleUploadSlip}
+                            disabled={uploading}
+                        >
+                            {uploading ? "กำลังตรวจสอบ..." : "อัปโหลดสลิป"}
+                        </button>
+                    </div>
+                </div>
             </div>
         );
     }
 
-    // pageState === "form" — หน้าสร้าง donation ใหม่
+    // pageState === "form"
     return (
-        <div>
-            <h1>Donate</h1>
+        <div className={styles.page}>
+            <div className={styles.card}>
+                <h1 className={styles.title}>สนับสนุนเรา 💙</h1>
 
-            <input
-                placeholder="ชื่อ"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-            />
+                <div className={styles.field}>
+                    <label className={styles.label}>ชื่อของคุณ</label>
+                    <input
+                        className={styles.input}
+                        placeholder="ชื่อ"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                    />
+                </div>
 
-            <br />
+                <div className={styles.field}>
+                    <label className={styles.label}>ข้อความ (ไม่บังคับ)</label>
+                    <div className={styles.textareaWrap}>
+                        <textarea
+                            className={styles.textarea}
+                            placeholder="ฝากข้อความถึงผู้รับ..."
+                            value={message}
+                            maxLength={210}
+                            onChange={(e) => setMessage(e.target.value)}
+                        />
+                        <div className={styles.charCount}>{message.length}/210</div>
+                    </div>
+                </div>
 
-            <textarea
-                placeholder="ข้อความ"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-            />
+                <div className={styles.field}>
+                    <label className={styles.label}>จำนวนเงิน (บาท)</label>
 
-            <br />
+                    <div className={styles.amountRow}>
+                        {QUICK_AMOUNTS.map((v) => (
+                            <button
+                                key={v}
+                                type="button"
+                                className={`${styles.amountChip} ${amount === v ? styles.active : ""}`}
+                                onClick={() => setAmount(v)}
+                            >
+                                {v}
+                            </button>
+                        ))}
+                    </div>
 
-            <input
-                type="number"
-                value={amount}
-                onChange={(e) => setAmount(Number(e.target.value))}
-            />
+                    <input
+                        className={styles.input}
+                        type="number"
+                        min={1}
+                        value={amount}
+                        onChange={(e) => setAmount(Number(e.target.value))}
+                    />
+                </div>
 
-            <br />
-
-            <button onClick={handleSubmit}>Submit</button>
+                <button
+                    className={styles.submitBtn}
+                    onClick={handleSubmit}
+                    disabled={submitting}
+                >
+                    {submitting ? "กำลังสร้าง..." : "บริจาคเลย"}
+                </button>
+            </div>
         </div>
     );
 }
