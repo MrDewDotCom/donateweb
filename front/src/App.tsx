@@ -11,15 +11,29 @@ import SettingsPage from "./pages/Settings";
 import GoalWidget from "./pages/GoalWidget";
 import TopDonatorsWidget from "./pages/TopDonatorsWidget";
 import RecentDonationsWidget from "./pages/RecentDonationsWidget";
+import LoginPage from "./pages/Login";
+import ProtectedRoute from "./components/protectedroute";
+
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<DonatePage />} />
-        <Route path="/admin" element={<AdminPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin" element={
+          <ProtectedRoute>
+            <AdminPage />
+          </ProtectedRoute>
+        }
+        />
+        <Route path="/settings" element={
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        }
+        />
         <Route path="/overlay" element={<OverlayPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
         <Route path="/goal" element={<GoalWidget />} />
         <Route path="/top" element={<TopDonatorsWidget />} />
         <Route path="/recent" element={<RecentDonationsWidget />} />
