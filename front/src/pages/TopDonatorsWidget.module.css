@@ -1,0 +1,67 @@
+.widget {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px 20px;
+    background: transparent;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    min-width: 260px;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0 0 6px;
+    letter-spacing: 0.5px;
+}
+
+.item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 14px;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.rank {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    background: #8b5cf6;
+    flex-shrink: 0;
+}
+
+.rank.gold {
+    background: #fbbf24;
+    color: #1a1a2e;
+}
+
+.rank.silver {
+    background: #cbd5e1;
+    color: #1a1a2e;
+}
+
+.rank.bronze {
+    background: #d97706;
+}
+
+.name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.amount {
+    color: #00ff88;
+}

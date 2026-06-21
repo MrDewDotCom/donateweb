@@ -1,11 +1,15 @@
+export type DonationStatus = "pending" | "paid" | "failed";
+
 export interface Donation {
     id: number;
     name: string;
     message?: string | null;
     amount: number;
-    status: string;
+    status: DonationStatus;
     qrCode?: string | null;
     createdAt: string;
     paidAt?: string | null;
-    slipImage?: string;
+    slipImage?: string | null;
+    expiresAt?: string | null;
+    transRef?: string | null;
 }

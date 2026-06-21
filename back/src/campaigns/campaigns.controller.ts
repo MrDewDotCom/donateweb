@@ -1,7 +1,9 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { CampaignsService } from './campaigns.service';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
-import { AdminApiKeyGuard } from 'src/common/guards/admin-api-key.guard';
+import { CreateCampaignDto } from './dto/create-campaign.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('campaigns')
 export class CampaignsController {
@@ -34,7 +36,15 @@ export class CampaignsController {
             .getRecentDonations();
     }
 
-    @UseGuards(AdminApiKeyGuard)
+    // สร้างแคมเปญ (Goal) ใหม่ — admin เท่านั้น
+    @Throttle({ default: { limit: 2, ttl: 60000 } })
+    @UseGuards(JwtAuthGuard)
+    @Post()
+    createCampaign(@Body() body: CreateCampaignDto) {
+        return this.campaignsService.createCampaign(body);
+    }
+
+    @UseGuards(JwtAuthGuard)
     @Patch(':id')
     updateCampaign(
         @Param('id') id: string,

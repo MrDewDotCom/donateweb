@@ -15,6 +15,12 @@ export class SettingsController {
         return this.settingsService.getSettings();
     }
 
+    // public — ใช้แสดงผลความคืบหน้าเป้าหมายรายเดือน (ถ้าทำ widget ต่อในอนาคต)
+    @Get('monthly-goal')
+    getMonthlyGoalProgress() {
+        return this.settingsService.getMonthlyGoalProgress();
+    }
+
     @UseGuards(JwtAuthGuard)
     @Patch()
     updateSettings(

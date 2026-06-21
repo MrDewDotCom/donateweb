@@ -1,0 +1,75 @@
+.page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.card {
+    width: 100%;
+    max-width: 360px;
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 16px;
+    padding: 32px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #f1f1f6;
+    text-align: center;
+    margin: 0 0 24px;
+}
+
+.input {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1px solid #34344f;
+    border-radius: 10px;
+    background: #14141f;
+    color: #f1f1f6;
+    font-size: 15px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+}
+
+.input::placeholder {
+    color: #6b6b85;
+}
+
+.input:focus {
+    outline: none;
+    border-color: #8b5cf6;
+}
+
+.error {
+    color: #f87171;
+    font-size: 13px;
+    margin: -4px 0 14px;
+}
+
+.submitBtn {
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: 10px;
+    background: #8b5cf6;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.submitBtn:hover {
+    background: #7c3aed;
+}
+
+.submitBtn:disabled {
+    background: #44415c;
+    color: #8a8aa0;
+    cursor: not-allowed;
+}

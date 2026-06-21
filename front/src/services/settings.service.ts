@@ -14,3 +14,9 @@ export const updateSettings =
             `${API_URL}/settings`,
             data,
         );
+
+export const getMonthlyGoalProgress =
+    () =>
+        axios.get(
+            `${API_URL}/settings/monthly-goal`
+        );

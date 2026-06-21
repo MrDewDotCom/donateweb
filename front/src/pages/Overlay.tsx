@@ -2,23 +2,17 @@ import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import type { Donation } from "../types/donation";
 import type { Settings } from "../types/settings";
-import "./OverlayPage.css";
 import { getSettings } from "../services/settings.service";
+import { API_URL } from "../config/api";
+import styles from "./Overlay.module.css";
 
-const socket = io("http://localhost:3000");
+const socket = io(API_URL);
 
 export default function OverlayPage() {
-    const [donation, setDonation] =
-        useState<Donation | null>(null);
-
-    const [visible, setVisible] =
-        useState(false);
-
-    const [queue, setQueue] =
-        useState<Donation[]>([]);
-
-    const [settings, setSettings] =
-        useState<Settings | null>(null);
+    const [donation, setDonation] = useState<Donation | null>(null);
+    const [visible, setVisible] = useState(false);
+    const [queue, setQueue] = useState<Donation[]>([]);
+    const [settings, setSettings] = useState<Settings | null>(null);
 
     useEffect(() => {
         socket.on("donationPaid", (data: Donation) => {
@@ -57,10 +51,7 @@ export default function OverlayPage() {
             }, (settings?.overlayDuration ?? 2) * 1000);
         };
 
-        const audio = new Audio(
-            `/sounds/${settings?.alertSound ?? "donation.mp3"}`
-        );
-
+        const audio = new Audio(`/sounds/${settings?.alertSound ?? "donation.mp3"}`);
         audio.volume = (settings?.alertVolume ?? 100) / 100;
 
         audio.onerror = () => {
@@ -68,18 +59,21 @@ export default function OverlayPage() {
         };
 
         audio.onended = () => {
-            if (
-                !settings?.ttsEnabled ||
-                !nextDonation.message?.trim()
-            ) {
+            if (!settings?.ttsEnabled) {
                 finishDonation();
                 return;
             }
 
-            const speech = new SpeechSynthesisUtterance(
-                nextDonation.message
-            );
+            // ถ้าเปิด "อ่านข้อความ" และมีข้อความ → อ่านข้อความตามเดิม
+            // ถ้าปิดไว้ → อ่านแค่ "ชื่อ บริจาค จำนวนเงิน" แทน ไม่อ่านข้อความที่ฝากมา
+            const shouldReadMessage =
+                settings.readMessageEnabled && nextDonation.message?.trim();
 
+            const textToSpeak = shouldReadMessage
+                ? nextDonation.message!
+                : `${nextDonation.name} บริจาค ${nextDonation.amount} บาท`;
+
+            const speech = new SpeechSynthesisUtterance(textToSpeak);
             speech.lang = "th-TH";
 
             const selectedVoice = window.speechSynthesis
@@ -106,11 +100,9 @@ export default function OverlayPage() {
             window.speechSynthesis.speak(speech);
         };
 
-        // ✅ handle กรณี browser block autoplay
         audio.play().catch(() => {
             finishDonation();
         });
-
     }, [queue, visible, settings]);
 
     useEffect(() => {
@@ -123,12 +115,20 @@ export default function OverlayPage() {
         return null;
     }
 
+    const animationClass = styles[settings?.overlayAnimation ?? "fade"] ?? styles.fade;
+
     return (
-        <div className="overlay">
-            <h3>🎉 NEW DONATION</h3>
-            <h1>{donation.name}</h1>
-            <h2>฿{donation.amount}</h2>
-            <p>{donation.message}</p>
+        <div className={styles.overlay}>
+            <div className={`${styles.card} ${animationClass}`}>
+                {settings?.overlayImage && (
+                    <img src={settings.overlayImage} alt="" className={styles.image} />
+                )}
+
+                <p className={styles.label}>🎉 NEW DONATION</p>
+                <h1 className={styles.name}>{donation.name}</h1>
+                <h2 className={styles.amount}>฿{donation.amount.toLocaleString()}</h2>
+                {donation.message && <p className={styles.message}>{donation.message}</p>}
+            </div>
         </div>
     );
 }

@@ -3,7 +3,7 @@ import axios from "axios";
 import { createDonation, getDonation } from "../services/donation.service";
 import { useParams, useNavigate } from "react-router-dom";
 import { uploadSlip } from "../services/upload.service";
-import styles from "../components/donate.module.css";
+import styles from "./donate.module.css";
 
 type PageState = "form" | "active" | "paid" | "expired" | "not_found" | "loading";
 

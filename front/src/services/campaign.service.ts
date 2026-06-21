@@ -8,6 +8,19 @@ export const getCampaign =
             `${API_URL}/campaigns/active`
         );
 
+// สร้างแคมเปญใหม่ (ใช้ adminApi เพราะ backend ต้อง login)
+export const createCampaign =
+    (data: {
+        title: string;
+        goalAmount: number;
+        startDate: string;
+        endDate: string;
+    }) =>
+        adminApi.post(
+            `${API_URL}/campaigns`,
+            data,
+        );
+
 export const updateCampaign =
     (
         id: number,

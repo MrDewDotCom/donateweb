@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, BadRequestException } from '@nestjs/common';
 import { CreateDonationDto } from './dto/create-donation.dto';
 import { PrismaService } from 'prisma/src/prisma.service';
 import { PaymentService } from 'src/payment/payment.service';
@@ -20,6 +20,25 @@ export class DonationsService {
 
     if (!settings?.promptpayNumber) {
       throw new Error('PromptPay number not configured');
+    }
+
+    // เช็คจำนวนเงินกับขั้นต่ำ/สูงสุดที่ตั้งไว้ใน Settings
+    if (
+      settings.minDonationAmount != null &&
+      createDonationDto.amount < settings.minDonationAmount
+    ) {
+      throw new BadRequestException(
+        `จำนวนเงินต้องไม่น้อยกว่า ${settings.minDonationAmount} บาท`,
+      );
+    }
+
+    if (
+      settings.maxDonationAmount != null &&
+      createDonationDto.amount > settings.maxDonationAmount
+    ) {
+      throw new BadRequestException(
+        `จำนวนเงินต้องไม่เกิน ${settings.maxDonationAmount} บาท`,
+      );
     }
 
     const qrCode = await this.paymentService.generateQr(

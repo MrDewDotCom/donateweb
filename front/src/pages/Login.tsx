@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { login } from "../services/frontend-auth.service";
+import styles from "./Login.module.css";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
@@ -17,7 +18,7 @@ export default function LoginPage() {
 
         try {
             await login(username, password);
-            navigate("/admin"); // เปลี่ยนเป็น path หน้า admin dashboard จริงของโปรเจกต์
+            navigate("/admin");
         } catch (err) {
             console.error(err);
             let message = "เข้าสู่ระบบไม่สำเร็จ";
@@ -35,36 +36,34 @@ export default function LoginPage() {
     };
 
     return (
-        <div style={{ maxWidth: 360, margin: "80px auto" }}>
-            <h1>เข้าสู่ระบบ Admin</h1>
+        <div className={styles.page}>
+            <div className={styles.card}>
+                <h1 className={styles.title}>เข้าสู่ระบบ Admin</h1>
 
-            <form onSubmit={handleSubmit}>
-                <input
-                    placeholder="Username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    autoFocus
-                />
+                <form onSubmit={handleSubmit}>
+                    <input
+                        className={styles.input}
+                        placeholder="Username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                        autoFocus
+                    />
 
-                <br />
-                <br />
+                    <input
+                        className={styles.input}
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                    />
 
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                />
+                    {error && <p className={styles.error}>{error}</p>}
 
-                <br />
-                <br />
-
-                {error && <p style={{ color: "red" }}>{error}</p>}
-
-                <button type="submit" disabled={loading}>
-                    {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
-                </button>
-            </form>
+                    <button className={styles.submitBtn} type="submit" disabled={loading}>
+                        {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+                    </button>
+                </form>
+            </div>
         </div>
     );
 }

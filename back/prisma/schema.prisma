@@ -8,16 +8,16 @@ datasource db {
 }
 
 model Donation {
-  id        Int       @id @default(autoincrement())
-  name      String
-  message   String?
-  amount    Int
-  status    String    @default("pending")
-  createdAt DateTime  @default(now())
-  paidAt    DateTime?
-  qrCode    String?
-  accessToken String? @unique
-  slipImage String?
+  id          Int       @id @default(autoincrement())
+  name        String
+  message     String?
+  amount      Int
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  paidAt      DateTime?
+  qrCode      String?
+  accessToken String?   @unique
+  slipImage   String?
   transRef    String?
   expiresAt   DateTime?
 }
@@ -30,7 +30,7 @@ model Campaign {
   endDate         DateTime
   isActive        Boolean  @default(true)
   createdAt       DateTime @default(now())
-  recentLimit     Int      @default(1)
+  recentLimit     Int      @default(5)
   topDonatorLimit Int      @default(3)
 }
 
@@ -45,4 +45,11 @@ model Setting {
   overlayDuration  Int     @default(2)
   ttsVoice         String?
   promptpayNumber  String?
+  minDonationAmount Int? // จำนวนโดเนทขั้นต่ำ
+  maxDonationAmount Int? // จำนวนโดเนทสูงสุด
+  overlayAnimation String  @default("fade") // fade | slide | zoom | bounce
+  overlayImage     String? // path/URL รูปที่แสดงตอนโดเนทขึ้น
+  readMessageEnabled Boolean @default(true) // อ่านข้อความผู้บริจาคหรือแค่ชื่อ+จำนวนเงิน
+  monthlyGoalAmount    Int?
+  monthlyGoalAutoReset Boolean @default(true) // true = นับเฉพาะเดือนปัจจุบัน, false = นับสะสมตลอดเวลา
 }

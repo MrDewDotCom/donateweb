@@ -1,0 +1,233 @@
+.page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #f1f1f6;
+    padding: 24px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.navTabs {
+    display: flex;
+    gap: 8px;
+}
+
+.navTab {
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid #34344f;
+    background: #1e1e30;
+    color: #c0c0d0;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.15s;
+}
+
+.navTab:hover {
+    background: #2a2a44;
+    color: #fff;
+}
+
+/* Quick links / widget hub */
+.section {
+    margin-bottom: 32px;
+}
+
+.sectionTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: #a0a0b8;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.linkGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.linkCard {
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.linkCardTitle {
+    font-weight: 700;
+    font-size: 15px;
+    color: #f1f1f6;
+}
+
+.linkCardDesc {
+    font-size: 12px;
+    color: #8a8aa0;
+    margin: 0;
+}
+
+.linkCardActions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+}
+
+.smallBtn {
+    flex: 1;
+    padding: 7px 10px;
+    border-radius: 8px;
+    border: 1px solid #34344f;
+    background: #14141f;
+    color: #c0c0d0;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+}
+
+.smallBtn:hover {
+    background: #2a2a44;
+    color: #fff;
+}
+
+.smallBtn.primary {
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+    color: #fff;
+}
+
+.smallBtn.primary:hover {
+    background: #7c3aed;
+}
+
+/* Donation list */
+.statsRow {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.statCard {
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 12px;
+    padding: 14px 20px;
+    min-width: 140px;
+}
+
+.statLabel {
+    font-size: 12px;
+    color: #8a8aa0;
+    margin-bottom: 4px;
+}
+
+.statValue {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.donationGrid {
+    display: grid;
+    gap: 12px;
+}
+
+.donationCard {
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.donationInfo {
+    flex: 1;
+    min-width: 200px;
+}
+
+.donationName {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+.donationMessage {
+    font-size: 13px;
+    color: #a0a0b8;
+    margin-bottom: 4px;
+}
+
+.donationAmount {
+    font-size: 14px;
+    color: #d0d0e0;
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.badge.paid {
+    background: #14301f;
+    color: #4ade80;
+}
+
+.badge.pending {
+    background: #3a2e14;
+    color: #fbbf24;
+}
+
+.badge.failed {
+    background: #3a1414;
+    color: #f87171;
+}
+
+.donationActions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.slipLink {
+    color: #a78bfa;
+    font-size: 13px;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.slipLink:hover {
+    text-decoration: underline;
+}
+
+.emptyText {
+    color: #8a8aa0;
+    text-align: center;
+    padding: 40px 0;
+}
