@@ -192,6 +192,40 @@ export class DonationsService {
     });
   }
 
+  // สรุปยอดบริจาคที่จ่ายแล้วรายวัน ย้อนหลัง n วัน — ใช้ทำกราฟแท่งใน Dashboard
+  async getDailyStats(days = 7) {
+    const since = new Date();
+    since.setDate(since.getDate() - (days - 1));
+    since.setHours(0, 0, 0, 0);
+
+    const donations = await this.prisma.donation.findMany({
+      where: {
+        status: 'paid',
+        paidAt: { gte: since },
+      },
+      select: { amount: true, paidAt: true },
+    });
+
+    // เตรียม bucket รายวันล่วงหน้า ให้วันที่ไม่มียอดก็โชว์เป็น 0 ไม่หายไปจากกราฟ
+    const buckets: Record<string, number> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(since);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      buckets[key] = 0;
+    }
+
+    for (const d of donations) {
+      if (!d.paidAt) continue;
+      const key = d.paidAt.toISOString().slice(0, 10);
+      if (key in buckets) {
+        buckets[key] += d.amount;
+      }
+    }
+
+    return Object.entries(buckets).map(([date, total]) => ({ date, total }));
+  }
+
   async getRecentDonations() {
     const donations = await this.prisma.donation.findMany({
       where: {

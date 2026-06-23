@@ -1,9 +1,23 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Donation } from "../types/donation";
-import { getDonations, markDonationAsPaid } from "../services/donation.service";
+import { getDonations, markDonationAsPaid, getDailyStats } from "../services/donation.service";
+import { getProgress } from "../services/campaign.service";
+import { getMonthlyGoalProgress } from "../services/settings.service";
 import { API_URL } from "../config/api";
 import styles from "./Admin.module.css";
+
+interface DailyStat {
+    date: string;
+    total: number;
+}
+
+interface GoalProgress {
+    title?: string;
+    goalAmount: number;
+    currentAmount: number;
+    percentage: number;
+}
 
 const WIDGET_LINKS = [
     {
@@ -31,6 +45,9 @@ const WIDGET_LINKS = [
 export default function AdminPage() {
     const [donations, setDonations] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
+    const [campaignProgress, setCampaignProgress] = useState<GoalProgress | null>(null);
+    const [monthlyProgress, setMonthlyProgress] = useState<GoalProgress | null>(null);
 
     const loadDonations = async () => {
         try {
@@ -43,13 +60,40 @@ export default function AdminPage() {
         }
     };
 
+    const loadDailyStats = async () => {
+        try {
+            const res = await getDailyStats(7);
+            setDailyStats(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const loadGoalProgress = async () => {
+        try {
+            const [campaignRes, monthlyRes] = await Promise.all([
+                getProgress(),
+                getMonthlyGoalProgress(),
+            ]);
+
+            setCampaignProgress(campaignRes.data);
+            setMonthlyProgress(monthlyRes.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
     const markAsPaid = async (id: number) => {
         await markDonationAsPaid(id);
         loadDonations();
+        loadDailyStats();
+        loadGoalProgress();
     };
 
     useEffect(() => {
         loadDonations();
+        loadDailyStats();
+        loadGoalProgress();
     }, []);
 
     const copyLink = (path: string) => {
@@ -67,9 +111,9 @@ export default function AdminPage() {
                 <h1 className={styles.title}>Admin Dashboard</h1>
 
                 <div className={styles.navTabs}>
-                    <Link to="/admin" className={styles.navTab}>
+                    <span className={`${styles.navTab} ${styles.navTabActive}`}>
                         Dashboard
-                    </Link>
+                    </span>
                     <Link to="/settings" className={styles.navTab}>
                         Settings
                     </Link>
@@ -91,6 +135,101 @@ export default function AdminPage() {
                 <div className={styles.statCard}>
                     <div className={styles.statLabel}>ทั้งหมด</div>
                     <div className={styles.statValue}>{donations.length}</div>
+                </div>
+            </div>
+
+            {/* กราฟยอดโดเนทรายวัน + เป้าหมาย */}
+            <div className={styles.section}>
+                <div className={styles.sectionTitle}>สถิติ & เป้าหมาย</div>
+
+                <div className={styles.chartCard}>
+                    <div className={styles.sectionTitle} style={{ marginBottom: 0 }}>
+                        ยอดโดเนทรายวัน (7 วันล่าสุด)
+                    </div>
+
+                    {dailyStats.length === 0 ? (
+                        <p className={styles.emptyText}>ยังไม่มีข้อมูล</p>
+                    ) : (
+                        <div className={styles.chartBars}>
+                            {(() => {
+                                const max = Math.max(
+                                    ...dailyStats.map((d) => d.total),
+                                    1,
+                                );
+
+                                return dailyStats.map((d) => (
+                                    <div key={d.date} className={styles.chartCol}>
+                                        <span className={styles.chartValue}>
+                                            {d.total > 0 ? d.total.toLocaleString() : ""}
+                                        </span>
+                                        <div
+                                            className={styles.chartBar}
+                                            style={{
+                                                height: `${Math.max((d.total / max) * 100, 2)}%`,
+                                            }}
+                                        />
+                                        <span className={styles.chartLabel}>
+                                            {new Date(d.date).toLocaleDateString("th-TH", {
+                                                day: "numeric",
+                                                month: "short",
+                                            })}
+                                        </span>
+                                    </div>
+                                ));
+                            })()}
+                        </div>
+                    )}
+
+                    {monthlyProgress && (
+                        <div className={styles.goalRow} style={{ marginTop: 20 }}>
+                            <div className={styles.goalHeader}>
+                                <span>เป้าหมายเดือนนี้</span>
+                                <span>
+                                    {monthlyProgress.currentAmount.toLocaleString()} /{" "}
+                                    {monthlyProgress.goalAmount.toLocaleString()} บาท (
+                                    {monthlyProgress.percentage}%)
+                                </span>
+                            </div>
+                            <div className={styles.goalTrack}>
+                                <div
+                                    className={styles.goalFill}
+                                    style={{
+                                        width: `${Math.min(monthlyProgress.percentage, 100)}%`,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {campaignProgress && (
+                        <div className={styles.goalRow}>
+                            <div className={styles.goalHeader}>
+                                <span>เป้าหมายสตรีม {campaignProgress.title ? `(${campaignProgress.title})` : ""}</span>
+                                <span>
+                                    {campaignProgress.currentAmount.toLocaleString()} /{" "}
+                                    {campaignProgress.goalAmount.toLocaleString()} บาท (
+                                    {campaignProgress.percentage}%)
+                                </span>
+                            </div>
+                            <div className={styles.goalTrack}>
+                                <div
+                                    className={styles.goalFill}
+                                    style={{
+                                        width: `${Math.min(campaignProgress.percentage, 100)}%`,
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {!monthlyProgress && !campaignProgress && (
+                        <p className={styles.emptyText}>
+                            ยังไม่มีเป้าหมายที่เปิดใช้งาน — ไปตั้งค่าได้ที่{" "}
+                            <Link to="/settings" className={styles.slipLink}>
+                                Settings
+                            </Link>
+                        </p>
+                    )}
                 </div>
             </div>
 
@@ -151,10 +290,10 @@ export default function AdminPage() {
                             <div className={styles.donationActions}>
                                 <span
                                     className={`${styles.badge} ${d.status === "paid"
-                                            ? styles.paid
-                                            : d.status === "failed"
-                                                ? styles.failed
-                                                : styles.pending
+                                        ? styles.paid
+                                        : d.status === "failed"
+                                            ? styles.failed
+                                            : styles.pending
                                         }`}
                                 >
                                     {d.status === "paid"

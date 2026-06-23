@@ -3,6 +3,8 @@ import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
@@ -13,9 +15,10 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { SettingsModule } from './settings/settings.module';
 import { SlipokModule } from './slipok/slipok.module';
 import { AuthModule } from './auth/auth.module';
-// ServeStaticModule ถูกลบออก — /uploads/ ไม่ public แล้ว
-// ตอนนี้เสิร์ฟผ่าน UploadsServeController ที่เช็ค signed URL ก่อนทุกครั้ง
 
+// หมายเหตุเรื่อง static files:
+// - /uploads (สลิป) ไม่ public — เสิร์ฟผ่าน UploadsServeController (signed URL, 15 นาที) เท่านั้น
+// - /sounds (เสียงแจ้งเตือนที่ admin อัปโหลดเอง) ไม่ sensitive เหมือนสลิป จึง public ได้ตามปกติ
 
 @Module({
   imports: [
@@ -29,7 +32,16 @@ import { AuthModule } from './auth/auth.module';
         limit: 60,
       },
     ]),
-    ScheduleModule.forRoot(),
+    ServeStaticModule.forRoot(
+      {
+        rootPath: join(process.cwd(), 'sounds'),
+        serveRoot: '/sounds',
+      },
+      {
+        rootPath: join(process.cwd(), 'overlay-images'),
+        serveRoot: '/overlay-images',
+      },
+    ),
     CommonModule,
 
     PrismaModule,

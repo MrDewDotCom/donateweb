@@ -14,6 +14,19 @@ export default function TopDonatorsWidget() {
     const [donators, setDonators] = useState<TopDonator[]>([]);
 
     useEffect(() => {
+        const prevBody = document.body.style.background;
+        const prevHtml = document.documentElement.style.background;
+
+        document.body.style.background = "transparent";
+        document.documentElement.style.background = "transparent";
+
+        return () => {
+            document.body.style.background = prevBody;
+            document.documentElement.style.background = prevHtml;
+        };
+    }, []);
+
+    useEffect(() => {
         const load = async () => {
             const res = await getTopDonators();
             setDonators(res.data);

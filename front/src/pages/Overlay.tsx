@@ -51,7 +51,13 @@ export default function OverlayPage() {
             }, (settings?.overlayDuration ?? 2) * 1000);
         };
 
-        const audio = new Audio(`/sounds/${settings?.alertSound ?? "donation.mp3"}`);
+        const alertSound = settings?.alertSound ?? "donation.mp3";
+        // เสียงที่อัปโหลดเองเก็บเป็น URL เต็มของ backend ส่วนเสียงตั้งต้นใช้ path ของ frontend
+        const soundSrc = alertSound.startsWith("http")
+            ? alertSound
+            : `/sounds/${alertSound}`;
+
+        const audio = new Audio(soundSrc);
         audio.volume = (settings?.alertVolume ?? 100) / 100;
 
         audio.onerror = () => {
@@ -106,6 +112,21 @@ export default function OverlayPage() {
     }, [queue, visible, settings]);
 
     useEffect(() => {
+        // OBS Browser Source อ่าน background ของ <body> จริง ไม่ใช่แค่ div ของ component
+        // ต้อง override ตรงนี้ด้วย ไม่งั้นจะเห็นพื้นขาวทะลุออกมา
+        const prevBody = document.body.style.background;
+        const prevHtml = document.documentElement.style.background;
+
+        document.body.style.background = "transparent";
+        document.documentElement.style.background = "transparent";
+
+        return () => {
+            document.body.style.background = prevBody;
+            document.documentElement.style.background = prevHtml;
+        };
+    }, []);
+
+    useEffect(() => {
         return () => {
             window.speechSynthesis.cancel();
         };
@@ -124,7 +145,6 @@ export default function OverlayPage() {
                     <img src={settings.overlayImage} alt="" className={styles.image} />
                 )}
 
-                <p className={styles.label}>🎉 NEW DONATION</p>
                 <h1 className={styles.name}>{donation.name}</h1>
                 <h2 className={styles.amount}>฿{donation.amount.toLocaleString()}</h2>
                 {donation.message && <p className={styles.message}>{donation.message}</p>}

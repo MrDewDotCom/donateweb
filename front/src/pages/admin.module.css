@@ -43,6 +43,17 @@
     color: #fff;
 }
 
+.navTabActive {
+    background: #8b5cf6;
+    border-color: #8b5cf6;
+    color: #fff;
+    cursor: default;
+}
+
+.navTabActive:hover {
+    background: #8b5cf6;
+}
+
 /* Quick links / widget hub */
 .section {
     margin-bottom: 32px;
@@ -230,4 +241,77 @@
     color: #8a8aa0;
     text-align: center;
     padding: 40px 0;
+}
+
+/* Daily chart */
+.chartCard {
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.chartBars {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    height: 160px;
+    margin-top: 12px;
+}
+
+.chartCol {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    height: 100%;
+    gap: 6px;
+}
+
+.chartBar {
+    width: 100%;
+    max-width: 36px;
+    border-radius: 6px 6px 0 0;
+    background: linear-gradient(180deg, #8b5cf6, #6d28d9);
+    transition: height 0.3s ease;
+}
+
+.chartValue {
+    font-size: 11px;
+    color: #a0a0b8;
+}
+
+.chartLabel {
+    font-size: 11px;
+    color: #6b6b85;
+}
+
+/* Goal progress */
+.goalRow {
+    margin-bottom: 14px;
+}
+
+.goalHeader {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #c0c0d0;
+    margin-bottom: 6px;
+}
+
+.goalTrack {
+    width: 100%;
+    height: 14px;
+    background: #14141f;
+    border: 1px solid #2c2c44;
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.goalFill {
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #00ff88);
+    border-radius: 999px;
+    transition: width 0.5s ease;
 }

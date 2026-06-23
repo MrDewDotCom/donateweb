@@ -21,3 +21,7 @@ export const getRecentDonations =
 
 export const getDonation =
     (id: number, token: string,) => axios.get(`${DONATION_API}/${id}/${token}`,);
+
+// สรุปยอดรายวัน (default 7 วันล่าสุด) — admin เท่านั้น
+export const getDailyStats =
+    (days = 7) => adminApi.get(`${DONATION_API}/stats/daily?days=${days}`);

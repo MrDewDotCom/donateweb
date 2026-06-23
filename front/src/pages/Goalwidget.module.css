@@ -1,0 +1,150 @@
+.widget {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px 28px;
+    background: transparent;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+
+.title {
+    font-size: 22px;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+
+.barTrack {
+    position: relative;
+    width: 500px;
+    height: 26px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 2px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    overflow: visible;
+}
+
+.barFill {
+    position: relative;
+    height: 100%;
+    background: linear-gradient(90deg, #8b5cf6, #00ff88);
+    border-radius: 999px;
+    /* แอนิเมชันตอนหลอดขยับ (เพิ่ม/ลด %) ให้นิ่มนวลขึ้น */
+    transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: hidden;
+}
+
+/* แสงวิ่งผ่านหลอดเบาๆ ตอนค่าเพิ่มขึ้น ให้ดูมีชีวิตชีวา */
+.barFill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -40%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.5) 50%,
+            rgba(255, 255, 255, 0) 100%);
+    animation: shimmer 1.8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        left: -40%;
+    }
+
+    100% {
+        left: 110%;
+    }
+}
+
+.amountText {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.percentText {
+    font-size: 15px;
+    font-weight: 600;
+    opacity: 0.9;
+    margin: 0;
+}
+
+.loadingWrap {
+    color: #ffffff;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+/* ----- เอฟเฟกต์ดาวระยิบระยับรอบหลอดตอนเต็ม ----- */
+.starField {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    pointer-events: none;
+}
+
+.sparkle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.9), 0 0 9px 3px rgba(139, 92, 246, 0.7);
+    opacity: 0;
+    animation-name: twinkle;
+    animation-timing-function: ease-in-out;
+    animation-iteration-count: infinite;
+}
+
+/* ดวงดาวเล็ก ๆ ตัดด้วยเส้นไขว้ ให้ดูเป็นประกายดาวจริง ๆ ไม่ใช่จุดกลม */
+.sparkle::before,
+.sparkle::after {
+    content: "";
+    position: absolute;
+    background: rgba(255, 255, 255, 0.85);
+}
+
+.sparkle::before {
+    top: 50%;
+    left: -4px;
+    width: 13px;
+    height: 1px;
+    transform: translateY(-50%);
+}
+
+.sparkle::after {
+    left: 50%;
+    top: -4px;
+    width: 1px;
+    height: 13px;
+    transform: translateX(-50%);
+}
+
+/* ส่วนใหญ่ของรอบจะมองไม่เห็น (opacity 0) แวบขึ้นมาแค่ช่วงสั้น ๆ กลางรอบ
+   ระยะเวลาทั้งรอบ (2-5s) สุ่มต่อดวงผ่าน inline animation-duration */
+@keyframes twinkle {
+
+    0%,
+    85% {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+
+    92% {
+        opacity: 1;
+        transform: scale(1.3);
+    }
+
+    100% {
+        opacity: 0;
+        transform: scale(0.4);
+    }
+}

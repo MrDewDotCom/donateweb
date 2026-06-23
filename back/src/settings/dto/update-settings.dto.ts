@@ -73,4 +73,8 @@ export class UpdateSettingsDto {
     @IsOptional()
     @IsBoolean()
     monthlyGoalAutoReset?: boolean;
+
+    @IsOptional()
+    @IsBoolean()
+    goalEffectEnabled?: boolean;
 }

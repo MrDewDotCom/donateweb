@@ -24,6 +24,7 @@ export interface Settings {
     // Donation Goal
     monthlyGoalAmount?: number | null;
     monthlyGoalAutoReset: boolean;
+    goalEffectEnabled: boolean;
 }
 
 export interface MonthlyGoalProgress {

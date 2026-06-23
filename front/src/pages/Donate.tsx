@@ -28,12 +28,19 @@ export default function DonatePage() {
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    // กัน response เก่าของ donation ก่อนหน้าทับสถานะของ donation ปัจจุบัน
+    // (เกิดได้เพราะ React Router ใช้ component ตัวเดิมตอนแค่เปลี่ยน :id/:token ใน URL ไม่ remount)
+    const currentKeyRef = useRef<string>("");
+
     const clearTimers = () => {
         if (pollRef.current) clearInterval(pollRef.current);
         if (countdownRef.current) clearInterval(countdownRef.current);
     };
 
     useEffect(() => {
+        const key = `${id}-${token}`;
+        currentKeyRef.current = key;
+
         if (!id || !token) {
             setPageState("form");
             return;
@@ -44,6 +51,10 @@ export default function DonatePage() {
         const load = async () => {
             try {
                 const res = await getDonation(Number(id), token!);
+
+                // ถ้าระหว่างรอ response ผู้ใช้เปลี่ยนไปดู donation อื่นแล้ว ทิ้ง response นี้ไปเลย
+                if (currentKeyRef.current !== key) return;
+
                 const data = res.data;
 
                 if (data.state === "not_found") {
@@ -70,7 +81,9 @@ export default function DonatePage() {
                 setPageState("active");
             } catch (err) {
                 console.error(err);
-                setPageState("not_found");
+                if (currentKeyRef.current === key) {
+                    setPageState("not_found");
+                }
             }
         };
 
@@ -86,9 +99,15 @@ export default function DonatePage() {
             return;
         }
 
+        const key = `${id}-${token}`;
+
         pollRef.current = setInterval(async () => {
             try {
                 const res = await getDonation(Number(id), token!);
+
+                // กัน response ของ donation เก่าที่มาทีหลังตอนผู้ใช้เปลี่ยนไปหน้าอื่นแล้ว
+                if (currentKeyRef.current !== key) return;
+
                 const data = res.data;
 
                 if (data.state === "paid") {
@@ -243,15 +262,15 @@ export default function DonatePage() {
                 <div className={styles.card}>
                     <div className={styles.statusWrap}>
                         <div className={styles.statusIcon}>❓</div>
-                        <div className={styles.statusTitle}>ลิงก์นี้หมดอายุเเล้ว</div>
+                        <div className={styles.statusTitle}>ไม่พบข้อมูลการบริจาคนี้</div>
                         <p className={styles.statusText}>
-                            ขอบคุณสำหรับค่าขนมเเต่ลิ้งนี้หมดอายุเเล้ว
+                            ลิงก์นี้อาจไม่ถูกต้องหรือถูกลบไปแล้ว
                         </p>
                         <button
                             className={styles.secondaryBtn}
                             onClick={() => navigate("/")}
                         >
-                            โดเนทใหม่ที่นี่
+                            สร้างการบริจาคใหม่
                         </button>
                     </div>
                 </div>
@@ -267,13 +286,13 @@ export default function DonatePage() {
                         <div className={styles.statusIcon}>⏰</div>
                         <div className={styles.statusTitle}>ลิงก์หมดอายุแล้ว</div>
                         <p className={styles.statusText}>
-                            กรุณาสร้างการโดเนทใหม่เพื่อรับ QR Code อีกครั้ง
+                            กรุณาสร้างการบริจาคใหม่เพื่อรับ QR Code อีกครั้ง
                         </p>
                         <button
                             className={styles.secondaryBtn}
                             onClick={() => navigate("/")}
                         >
-                            สร้างการโดเนทใหม่
+                            สร้างการบริจาคใหม่
                         </button>
                     </div>
                 </div>

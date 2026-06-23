@@ -25,5 +25,6 @@ import { DonationCleanupService } from './donation-cleanup.service';
     DonationsGateway,
     DonationCleanupService,
   ],
+  exports: [DonationsGateway],
 })
 export class DonationsModule { }

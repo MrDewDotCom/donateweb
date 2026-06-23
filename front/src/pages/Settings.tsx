@@ -7,8 +7,24 @@ import {
     getSettings,
     updateSettings,
     getMonthlyGoalProgress,
+    getCustomSounds,
+    uploadSound,
+    testOverlay,
+    getOverlayImages,
+    uploadOverlayImage,
 } from "../services/settings.service";
+import { API_URL } from "../config/api";
 import styles from "./Settings.module.css";
+
+interface CustomSound {
+    filename: string;
+    url: string;
+}
+
+interface OverlayImage {
+    filename: string;
+    url: string;
+}
 
 const toDateInput = (iso?: string) => (iso ? iso.slice(0, 10) : "");
 
@@ -31,6 +47,11 @@ export default function SettingsPage() {
     const [saving, setSaving] = useState(false);
     const [savingCampaign, setSavingCampaign] = useState(false);
     const [monthlyProgress, setMonthlyProgress] = useState<MonthlyGoalProgress | null>(null);
+    const [customSounds, setCustomSounds] = useState<CustomSound[]>([]);
+    const [overlayImages, setOverlayImages] = useState<OverlayImage[]>([]);
+    const [uploadingSound, setUploadingSound] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [testingOverlay, setTestingOverlay] = useState(false);
 
     const [campaignForm, setCampaignForm] = useState({
         title: "",
@@ -44,6 +65,8 @@ export default function SettingsPage() {
     useEffect(() => {
         loadSettings();
         loadMonthlyProgress();
+        loadCustomSounds();
+        loadOverlayImages();
     }, []);
 
     useEffect(() => {
@@ -66,6 +89,117 @@ export default function SettingsPage() {
             setMonthlyProgress(res.data);
         } catch (err) {
             console.error(err);
+        }
+    };
+
+    const loadCustomSounds = async () => {
+        try {
+            const res = await getCustomSounds();
+            setCustomSounds(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const loadOverlayImages = async () => {
+        try {
+            const res = await getOverlayImages();
+            setOverlayImages(res.data);
+        } catch (err) {
+            console.error(err);
+        }
+    };
+
+    const handleUploadOverlayImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowedExt = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+        const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+
+        if (!allowedExt.includes(ext)) {
+            alert("รองรับเฉพาะไฟล์ .png .jpg .jpeg .gif .webp เท่านั้น");
+            return;
+        }
+
+        if (file.size > 8 * 1024 * 1024) {
+            alert("ไฟล์ต้องไม่เกิน 8MB");
+            return;
+        }
+
+        setUploadingImage(true);
+
+        try {
+            const res = await uploadOverlayImage(file);
+            await loadOverlayImages();
+
+            if (settings) {
+                setSettings({
+                    ...settings,
+                    overlayImage: `${API_URL}${res.data.url}`,
+                });
+            }
+
+            alert("อัปโหลดรูปสำเร็จ");
+        } catch (err) {
+            console.error(err);
+            alert("อัปโหลดไม่สำเร็จ");
+        } finally {
+            setUploadingImage(false);
+            e.target.value = "";
+        }
+    };
+
+    const handleUploadSound = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        const allowedExt = [".mp3", ".wav", ".ogg"];
+        const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+
+        if (!allowedExt.includes(ext)) {
+            alert("รองรับเฉพาะไฟล์ .mp3 .wav .ogg เท่านั้น");
+            return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            alert("ไฟล์ต้องไม่เกิน 5MB");
+            return;
+        }
+
+        setUploadingSound(true);
+
+        try {
+            const res = await uploadSound(file);
+            await loadCustomSounds();
+
+            // เลือกเสียงที่อัปโหลดใหม่ให้เป็นค่าที่ใช้ทันที (เก็บเป็น URL เต็มของ backend)
+            if (settings) {
+                setSettings({
+                    ...settings,
+                    alertSound: `${API_URL}${res.data.url}`,
+                });
+            }
+
+            alert("อัปโหลดเสียงสำเร็จ");
+        } catch (err) {
+            console.error(err);
+            alert("อัปโหลดไม่สำเร็จ");
+        } finally {
+            setUploadingSound(false);
+            e.target.value = "";
+        }
+    };
+
+    const handleTestOverlay = async () => {
+        setTestingOverlay(true);
+        try {
+            await testOverlay();
+        } catch (err) {
+            console.error(err);
+            alert("ทดสอบ Overlay ไม่สำเร็จ");
+        } finally {
+            setTestingOverlay(false);
         }
     };
 
@@ -163,7 +297,13 @@ export default function SettingsPage() {
     };
 
     const testSound = () => {
-        const audio = new Audio(`/sounds/${settings?.alertSound ?? "donation.mp3"}`);
+        const alertSound = settings?.alertSound ?? "donation.mp3";
+        // เสียงที่อัปโหลดเองเก็บเป็น URL เต็มของ backend (http...) ส่วนเสียงตั้งต้นใช้ path ของ frontend
+        const src = alertSound.startsWith("http")
+            ? alertSound
+            : `/sounds/${alertSound}`;
+
+        const audio = new Audio(src);
         audio.volume = (settings?.alertVolume ?? 100) / 100;
         audio.play();
     };
@@ -307,17 +447,42 @@ export default function SettingsPage() {
                         </div>
 
                         <div className={styles.field}>
-                            <label className={styles.label}>รูปตอนโดเนทขึ้น (URL)</label>
-                            <input
-                                className={styles.input}
-                                type="text"
-                                placeholder="https://... หรือ /images/xxx.png"
+                            <label className={styles.label}>รูปตอนโดเนทขึ้น</label>
+                            <select
+                                className={styles.select}
                                 value={settings.overlayImage ?? ""}
                                 onChange={(e) =>
-                                    setSettings({ ...settings, overlayImage: e.target.value })
+                                    setSettings({
+                                        ...settings,
+                                        overlayImage: e.target.value || null,
+                                    })
                                 }
+                            >
+                                <option value="">ไม่ใช้รูป</option>
+                                {overlayImages.map((img) => (
+                                    <option
+                                        key={img.filename}
+                                        value={`${API_URL}${img.url}`}
+                                    >
+                                        {img.filename}
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
+                        <div className={styles.field}>
+                            <label className={styles.label}>อัปโหลดรูปใหม่</label>
+                            <input
+                                type="file"
+                                accept=".png,.jpg,.jpeg,.gif,.webp,image/*"
+                                onChange={handleUploadOverlayImage}
+                                disabled={uploadingImage}
                             />
                         </div>
+                        <p className={styles.hint}>
+                            รองรับ .png .jpg .jpeg .gif (ภาพเคลื่อนไหวได้) .webp ขนาดไม่เกิน 8MB
+                            {uploadingImage && " — กำลังอัปโหลด..."}
+                        </p>
 
                         {settings.overlayImage && (
                             <img
@@ -402,10 +567,34 @@ export default function SettingsPage() {
                                     setSettings({ ...settings, alertSound: e.target.value })
                                 }
                             >
-                                <option value="donation.mp3">Donation Sound</option>
-                                <option value="aww.mp3">AWW</option>
+                                <option value="donation.mp3">Donation Sound (ตั้งต้น)</option>
+                                <option value="aww.mp3">AWW (ตั้งต้น)</option>
+
+                                {customSounds.length > 0 && (
+                                    <optgroup label="เสียงที่อัปโหลดเอง">
+                                        {customSounds.map((s) => (
+                                            <option key={s.filename} value={`${API_URL}${s.url}`}>
+                                                {s.filename}
+                                            </option>
+                                        ))}
+                                    </optgroup>
+                                )}
                             </select>
                         </div>
+
+                        <div className={styles.field}>
+                            <label className={styles.label}>อัปโหลดเสียงใหม่</label>
+                            <input
+                                type="file"
+                                accept=".mp3,.wav,.ogg,audio/*"
+                                onChange={handleUploadSound}
+                                disabled={uploadingSound}
+                            />
+                        </div>
+                        <p className={styles.hint}>
+                            รองรับไฟล์ .mp3 .wav .ogg ขนาดไม่เกิน 5MB
+                            {uploadingSound && " — กำลังอัปโหลด..."}
+                        </p>
 
                         <div className={styles.field}>
                             <label className={styles.label}>Volume</label>
@@ -431,7 +620,18 @@ export default function SettingsPage() {
                             <button className={styles.btn} onClick={testSound}>
                                 ทดสอบเสียง
                             </button>
+                            <button
+                                className={styles.btn}
+                                onClick={handleTestOverlay}
+                                disabled={testingOverlay}
+                            >
+                                {testingOverlay ? "กำลังส่ง..." : "ทดสอบ Overlay"}
+                            </button>
                         </div>
+                        <p className={styles.hint}>
+                            "ทดสอบ Overlay" จะส่งโดเนทตัวอย่างไปแสดงที่หน้า /overlay จริง
+                            (ไม่บันทึกลงฐานข้อมูล)
+                        </p>
 
                         <button
                             className={`${styles.btn} ${styles.primary}`}
@@ -487,6 +687,23 @@ export default function SettingsPage() {
                                 เปิด = นับยอดเฉพาะเดือนปัจจุบัน (รีเซ็ตเองทุกวันที่ 1) <br />
                                 ปิด = นับยอดสะสมทั้งหมดตลอดเวลาเทียบกับเป้านี้
                             </p>
+
+                            <div className={styles.field}>
+                                <label className={styles.label}>
+                                    เอฟเฟกต์ดาวตกตอนหลอด Goal เต็ม
+                                </label>
+                                <input
+                                    className={styles.checkbox}
+                                    type="checkbox"
+                                    checked={settings.goalEffectEnabled}
+                                    onChange={(e) =>
+                                        setSettings({
+                                            ...settings,
+                                            goalEffectEnabled: e.target.checked,
+                                        })
+                                    }
+                                />
+                            </div>
 
                             {monthlyProgress && (
                                 <div className={styles.goalProgressBox}>

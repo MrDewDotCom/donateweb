@@ -52,4 +52,5 @@ model Setting {
   readMessageEnabled Boolean @default(true) // อ่านข้อความผู้บริจาคหรือแค่ชื่อ+จำนวนเงิน
   monthlyGoalAmount    Int?
   monthlyGoalAutoReset Boolean @default(true) // true = นับเฉพาะเดือนปัจจุบัน, false = นับสะสมตลอดเวลา
+  goalEffectEnabled    Boolean @default(true)
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { DonationsService } from './donations.service';
 import { CreateDonationDto } from './dto/create-donation.dto';
@@ -25,6 +25,13 @@ export class DonationsController {
   getRecentDonations() {
     return this.donationsService
       .getRecentDonations();
+  }
+
+  // สรุปยอดโดเนทรายวัน (default 7 วันล่าสุด) — ใช้ทำกราฟใน Dashboard
+  @UseGuards(JwtAuthGuard)
+  @Get("stats/daily")
+  getDailyStats(@Query("days") days?: string) {
+    return this.donationsService.getDailyStats(days ? Number(days) : 7);
   }
 
   @UseGuards(JwtAuthGuard)
