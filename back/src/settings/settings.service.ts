@@ -73,25 +73,16 @@ export class SettingsService {
             );
         }
 
-        return this.prisma.setting.update({
+        const updated = await this.prisma.setting.update({
             where: {
                 id: settings.id,
             },
             data,
         });
-    }
 
-    async getSetting() {
-        return this.prisma.setting.findFirst();
-    }
+        this.donationsGateway.emitSettingsUpdated(updated);
 
-    async updateSetting(
-        dto: UpdateSettingsDto,
-    ) {
-        return this.prisma.setting.update({
-            where: { id: 1 },
-            data: dto,
-        });
+        return updated;
     }
 
     async getMonthlyGoalProgress() {

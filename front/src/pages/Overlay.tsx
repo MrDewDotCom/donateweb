@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import type { Donation } from "../types/donation";
 import type { Settings } from "../types/settings";
@@ -14,14 +14,35 @@ export default function OverlayPage() {
     const [queue, setQueue] = useState<Donation[]>([]);
     const [settings, setSettings] = useState<Settings | null>(null);
 
+    // เก็บ visible ปัจจุบันไว้ใน ref ด้วย เพราะ listener "settingsUpdated" ผูกแค่ครั้งเดียวตอน mount
+    // (closure ของมันจะเห็น visible ค้างที่ค่าตอน mount ถ้าไม่ใช้ ref)
+    const visibleRef = useRef(visible);
+    useEffect(() => {
+        visibleRef.current = visible;
+    }, [visible]);
+
+    // settings ที่เด้งมาตอน alert กำลังเล่นอยู่ — พักไว้ก่อน ค่อย apply ตอน alert จบ
+    // ป้องกัน animation/sound ของ alert ที่กำลังเล่นเปลี่ยนกลางอากาศ
+    const pendingSettingsRef = useRef<Settings | null>(null);
+
     useEffect(() => {
         socket.on("donationPaid", (data: Donation) => {
             console.log("Donation Received", data);
             setQueue((prev) => [...prev, data]);
         });
 
+        socket.on("settingsUpdated", (data: Settings) => {
+            if (visibleRef.current) {
+                // กำลังเล่น alert อยู่ พักไว้ก่อน
+                pendingSettingsRef.current = data;
+            } else {
+                setSettings(data);
+            }
+        });
+
         return () => {
             socket.off("donationPaid");
+            socket.off("settingsUpdated");
         };
     }, []);
 
@@ -48,6 +69,12 @@ export default function OverlayPage() {
                 setVisible(false);
                 setDonation(null);
                 setQueue((prev) => prev.slice(1));
+
+                // ถ้ามี settings ใหม่ที่เด้งมาตอน alert นี้กำลังเล่นอยู่ ค่อย apply ตอนนี้
+                if (pendingSettingsRef.current) {
+                    setSettings(pendingSettingsRef.current);
+                    pendingSettingsRef.current = null;
+                }
             }, (settings?.overlayDuration ?? 2) * 1000);
         };
 
@@ -145,6 +172,7 @@ export default function OverlayPage() {
                     <img src={settings.overlayImage} alt="" className={styles.image} />
                 )}
 
+                <p className={styles.label}>🎉 NEW DONATION</p>
                 <h1 className={styles.name}>{donation.name}</h1>
                 <h2 className={styles.amount}>฿{donation.amount.toLocaleString()}</h2>
                 {donation.message && <p className={styles.message}>{donation.message}</p>}

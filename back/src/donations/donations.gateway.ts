@@ -4,7 +4,7 @@ import {
 } from '@nestjs/websockets';
 
 import { Server } from 'socket.io';
-import { Donation } from '@prisma/client';
+import { Donation, Setting } from '@prisma/client';
 import { sanitizeDonation } from 'src/common/utils/donation.util';
 
 function parseCorsOrigins(): string[] {
@@ -28,5 +28,11 @@ export class DonationsGateway {
 
     emitDonationPaid(data: Donation) {
         this.server.emit('donationPaid', sanitizeDonation(data));
+    }
+
+    // แจ้งหน้า Overlay/Widget (OBS browser source) ว่า settings เปลี่ยนแล้ว
+    // ส่ง settings object เต็มไปเลยเพื่อเลี่ยงการ re-fetch ฝั่ง client
+    emitSettingsUpdated(data: Setting) {
+        this.server.emit('settingsUpdated', data);
     }
 }

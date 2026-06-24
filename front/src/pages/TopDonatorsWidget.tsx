@@ -19,10 +19,16 @@ export default function TopDonatorsWidget() {
 
         document.body.style.background = "transparent";
         document.documentElement.style.background = "transparent";
+        document.body.style.margin = "0";
+        document.documentElement.style.margin = "0";
+        document.body.style.overflow = "hidden";
 
         return () => {
             document.body.style.background = prevBody;
             document.documentElement.style.background = prevHtml;
+            document.body.style.margin = "";
+            document.documentElement.style.margin = "";
+            document.body.style.overflow = "";
         };
     }, []);
 
