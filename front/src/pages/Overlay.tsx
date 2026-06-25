@@ -172,9 +172,10 @@ export default function OverlayPage() {
                     <img src={settings.overlayImage} alt="" className={styles.image} />
                 )}
 
-                <p className={styles.label}>🎉 NEW DONATION</p>
-                <h1 className={styles.name}>{donation.name}</h1>
-                <h2 className={styles.amount}>฿{donation.amount.toLocaleString()}</h2>
+                <div className={styles.infoRow}>
+                    <h1 className={styles.name}>{donation.name}</h1>
+                    <h2 className={styles.amount}>฿{donation.amount.toLocaleString()}</h2>
+                </div>
                 {donation.message && <p className={styles.message}>{donation.message}</p>}
             </div>
         </div>

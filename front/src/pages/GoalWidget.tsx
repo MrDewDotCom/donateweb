@@ -85,8 +85,8 @@ export default function GoalWidget() {
                 // สลับบน/ล่างของกรอบหลอด
                 side: i % 2 === 0 ? "top" : "bottom",
                 // กระพริบเองรอบละ 2-5 วินาที ไม่พร้อมกัน
-                duration: 2 + Math.random() * 3,
-                delay: Math.random() * 5,
+                duration: 5 + Math.random() * 3,
+                delay: Math.random() * 10,
             })),
         [],
     );
@@ -107,7 +107,14 @@ export default function GoalWidget() {
             <h1 className={styles.title}>{progress.title}</h1>
 
             <div className={styles.barTrack}>
-                <div className={styles.barFill} style={{ width: `${pct}%` }} />
+                <div
+                    className={styles.barFill}
+                    style={{ width: `${pct}%` }}
+                />
+
+                <span className={styles.progressLabel}>
+                    {pct}%
+                </span>
 
                 {isFull && effectEnabled && (
                     <div className={styles.starField}>
@@ -133,8 +140,6 @@ export default function GoalWidget() {
                 {progress.currentAmount.toLocaleString()} /{" "}
                 {progress.goalAmount.toLocaleString()} บาท
             </h2>
-
-            <h3 className={styles.percentText}>{pct}%</h3>
         </div>
     );
 }

@@ -16,6 +16,7 @@
     border-radius: 16px;
     padding: 32px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    font-family: "MyFont", sans-serif;
 }
 
 .title {
@@ -24,6 +25,7 @@
     margin: 0 0 24px;
     color: #f1f1f6;
     text-align: center;
+    font-family: "MyFont", sans-serif;
 }
 
 .field {
@@ -178,11 +180,37 @@
     margin: 4px 0;
 }
 
-.fileInput {
+.hiddenFileInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.fileSelectBtn {
     width: 100%;
+    padding: 12px 14px;
     margin-bottom: 12px;
-    font-size: 14px;
+    border: 1px dashed #34344f;
+    border-radius: 10px;
+    background: #14141f;
     color: #c0c0d0;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    transition: border-color 0.15s, background 0.15s;
+}
+
+.fileSelectBtn:hover {
+    border-color: #8b5cf6;
+    background: #1a1a2c;
 }
 
 /* Status pages: paid / expired / not_found */
@@ -227,4 +255,181 @@
     text-align: center;
     color: #8a8aa0;
     padding: 40px 0;
+}
+
+/* Error / success popup modal */
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    z-index: 1000;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.modalBox {
+    width: 100%;
+    max-width: 340px;
+    background: #1e1e30;
+    border: 1px solid #2c2c44;
+    border-radius: 16px;
+    padding: 28px 24px;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    animation: popIn 0.15s ease-out;
+}
+
+.modalIcon {
+    font-size: 40px;
+    margin-bottom: 12px;
+}
+
+.modalTitle {
+    font-size: 18px;
+    font-weight: 700;
+    color: #f1f1f6;
+    margin-bottom: 8px;
+}
+
+.modalText {
+    font-size: 14px;
+    color: #a0a0b8;
+    margin: 0 0 20px;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes popIn {
+    from {
+        transform: scale(0.92);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ---------- Mobile responsive ---------- */
+@media (max-width: 480px) {
+    .page {
+        padding: 12px;
+        align-items: flex-start;
+    }
+
+    .card {
+        max-width: 100%;
+        padding: 20px 16px;
+        border-radius: 12px;
+    }
+
+    .title {
+        font-size: 19px;
+        margin-bottom: 18px;
+    }
+
+    .label {
+        font-size: 12px;
+    }
+
+    .input,
+    .textarea {
+        padding: 11px 12px;
+        font-size: 14px;
+    }
+
+    .amountRow {
+        gap: 6px;
+    }
+
+    .amountChip {
+        padding: 9px 0;
+        font-size: 14px;
+    }
+
+    .submitBtn {
+        padding: 13px;
+        font-size: 15px;
+    }
+
+    .qrImg {
+        width: 170px;
+        height: 170px;
+        margin: 8px auto 14px;
+    }
+
+    .timerBadge {
+        font-size: 13px;
+        padding: 5px 12px;
+    }
+
+    .infoBox {
+        font-size: 13px;
+        padding: 10px 12px;
+    }
+
+    .statusIcon {
+        font-size: 40px;
+    }
+
+    .statusTitle {
+        font-size: 18px;
+    }
+
+    .statusText {
+        font-size: 13px;
+    }
+
+    .secondaryBtn {
+        width: 100%;
+        padding: 12px 0;
+        box-sizing: border-box;
+    }
+
+    .modalBox {
+        max-width: 100%;
+        padding: 24px 18px;
+    }
+
+    .modalIcon {
+        font-size: 36px;
+    }
+
+    .modalTitle {
+        font-size: 16px;
+    }
+
+    .modalText {
+        font-size: 13px;
+    }
+}
+
+/* จอแคบมาก (เช่น iPhone SE) */
+@media (max-width: 360px) {
+    .amountRow {
+        flex-wrap: wrap;
+    }
+
+    .amountChip {
+        flex: 1 1 40%;
+    }
+
+    .qrImg {
+        width: 150px;
+        height: 150px;
+    }
 }

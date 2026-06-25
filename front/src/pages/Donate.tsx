@@ -20,6 +20,15 @@ export default function DonatePage() {
     const [remainingSec, setRemainingSec] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [uploading, setUploading] = useState(false);
+    const [errorModal, setErrorModal] = useState<{ title: string; message: string; type: "error" | "success" } | null>(null);
+
+    const showError = (message: string, title = "เกิดข้อผิดพลาด") => {
+        setErrorModal({ title, message, type: "error" });
+    };
+
+    const showSuccess = (message: string, title = "สำเร็จ") => {
+        setErrorModal({ title, message, type: "success" });
+    };
 
     const { id, token } = useParams();
     const navigate = useNavigate();
@@ -27,6 +36,7 @@ export default function DonatePage() {
 
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     // กัน response เก่าของ donation ก่อนหน้าทับสถานะของ donation ปัจจุบัน
     // (เกิดได้เพราะ React Router ใช้ component ตัวเดิมตอนแค่เปลี่ยน :id/:token ใน URL ไม่ remount)
@@ -158,7 +168,7 @@ export default function DonatePage() {
 
     const handleSubmit = async () => {
         if (!name.trim()) {
-            alert("กรุณากรอกชื่อ");
+            showError("กรุณากรอกชื่อก่อนทำการบริจาค", "ข้อมูลไม่ครบ");
             return;
         }
 
@@ -169,7 +179,7 @@ export default function DonatePage() {
             navigate(`/donate/${res.data.id}/${res.data.accessToken}`);
         } catch (error) {
             console.error(error);
-            alert("เกิดข้อผิดพลาด");
+            showError("ไม่สามารถสร้างรายการบริจาคได้ กรุณาลองใหม่อีกครั้ง");
         } finally {
             setSubmitting(false);
         }
@@ -177,27 +187,27 @@ export default function DonatePage() {
 
     const handleUploadSlip = async () => {
         if (!slipFile) {
-            alert("เลือกสลิปก่อน");
+            showError("กรุณาเลือกไฟล์สลิปก่อนอัปโหลด", "ยังไม่ได้เลือกไฟล์");
             return;
         }
 
         if (!id) {
-            alert("ไม่พบข้อมูล donation");
+            showError("ไม่พบข้อมูลการบริจาคนี้");
             return;
         }
 
         if (slipFile.size > 5 * 1024 * 1024) {
-            alert("ไฟล์ต้องไม่เกิน 5MB");
+            showError("ไฟล์สลิปต้องมีขนาดไม่เกิน 5MB", "ไฟล์มีขนาดใหญ่เกินไป");
             return;
         }
 
         if (!allowed.includes(slipFile.type)) {
-            alert("รองรับเฉพาะ JPG PNG WEBP");
+            showError("รองรับเฉพาะไฟล์รูปภาพ JPG, PNG หรือ WEBP เท่านั้น", "ไฟล์ไม่รองรับ");
             return;
         }
 
         if (!token) {
-            alert("ไม่พบ token");
+            showError("ไม่พบ token ของการบริจาคนี้");
             return;
         }
 
@@ -208,13 +218,14 @@ export default function DonatePage() {
 
             if (res.data.donation?.status === "paid") {
                 setPageState("paid");
+            } else {
+                showSuccess("ระบบได้รับสลิปแล้ว กรุณารอการตรวจสอบจากแอดมิน");
             }
 
-            alert("ตรวจสอบสลิปสำเร็จ");
             setSlipFile(null);
         } catch (err: unknown) {
             console.error(err);
-            let message = "ตรวจสอบสลิปไม่ผ่าน";
+            let message = "ตรวจสอบสลิปไม่ผ่าน กรุณาตรวจสอบสลิปและลองใหม่อีกครั้ง";
 
             if (axios.isAxiosError(err) && err.response?.data) {
                 const data = err.response.data as {
@@ -232,7 +243,7 @@ export default function DonatePage() {
                 }
             }
 
-            alert(message);
+            showError(message, "ตรวจสอบสลิปไม่สำเร็จ");
         } finally {
             setUploading(false);
         }
@@ -244,21 +255,49 @@ export default function DonatePage() {
         return `${m}:${s}`;
     };
 
-    // ---------- หน้าจอตาม state ----------
+    // ---------- Modal แสดงข้อผิดพลาด/ผลลัพธ์ ----------
 
-    if (pageState === "loading") {
+    const ErrorModal = () => {
+        if (!errorModal) return null;
+
         return (
-            <div className={styles.page}>
-                <div className={styles.card}>
-                    <div className={styles.loadingWrap}>กำลังโหลด...</div>
+            <div
+                className={styles.modalOverlay}
+                onClick={() => setErrorModal(null)}
+            >
+                <div
+                    className={styles.modalBox}
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    <div className={styles.modalIcon}>
+                        {errorModal.type === "success" ? "✅" : "⚠️"}
+                    </div>
+                    <div className={styles.modalTitle}>{errorModal.title}</div>
+                    <p className={styles.modalText}>{errorModal.message}</p>
+                    <button
+                        className={styles.submitBtn}
+                        onClick={() => setErrorModal(null)}
+                    >
+                        ตกลง
+                    </button>
                 </div>
             </div>
         );
-    }
+    };
 
-    if (pageState === "not_found") {
-        return (
-            <div className={styles.page}>
+    // ---------- หน้าจอตาม state ----------
+
+    const renderContent = () => {
+        if (pageState === "loading") {
+            return (
+                <div className={styles.card}>
+                    <div className={styles.loadingWrap}>กำลังโหลด...</div>
+                </div>
+            );
+        }
+
+        if (pageState === "not_found") {
+            return (
                 <div className={styles.card}>
                     <div className={styles.statusWrap}>
                         <div className={styles.statusIcon}>❓</div>
@@ -274,13 +313,11 @@ export default function DonatePage() {
                         </button>
                     </div>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
-    if (pageState === "expired") {
-        return (
-            <div className={styles.page}>
+        if (pageState === "expired") {
+            return (
                 <div className={styles.card}>
                     <div className={styles.statusWrap}>
                         <div className={styles.statusIcon}>⏰</div>
@@ -296,32 +333,34 @@ export default function DonatePage() {
                         </button>
                     </div>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
-    if (pageState === "paid") {
-        return (
-            <div className={styles.page}>
+        if (pageState === "paid") {
+            return (
                 <div className={styles.card}>
                     <div className={styles.statusWrap}>
                         <div className={styles.statusIcon}>✅</div>
-                        <div className={styles.statusTitle}>การบริจาคสำเร็จ</div>
+                        <div className={styles.statusTitle}>บริจาคสำเร็จ</div>
                         <p className={styles.statusText}>ขอบคุณสำหรับการสนับสนุน 💙</p>
+                        <button
+                            className={styles.secondaryBtn}
+                            onClick={() => navigate("/")}
+                        >
+                            สร้างการบริจาคใหม่
+                        </button>
                     </div>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
-    if (pageState === "active") {
-        const isUrgent = remainingSec !== null && remainingSec <= 120;
+        if (pageState === "active") {
+            const isUrgent = remainingSec !== null && remainingSec <= 120;
 
-        return (
-            <div className={styles.page}>
+            return (
                 <div className={styles.card}>
                     <div className={styles.qrWrap}>
-                        <h2 className={styles.title}>สแกนเพื่อชำระเงิน</h2>
+                        <h2 className={styles.title}>แสกนเชำระเงินด้วยเเอพธนาคาร</h2>
 
                         {remainingSec !== null && (
                             <span
@@ -340,11 +379,20 @@ export default function DonatePage() {
                         </div>
 
                         <input
-                            className={styles.fileInput}
+                            ref={fileInputRef}
+                            className={styles.hiddenFileInput}
                             type="file"
                             accept="image/*"
                             onChange={(e) => setSlipFile(e.target.files?.[0] ?? null)}
                         />
+
+                        <button
+                            type="button"
+                            className={styles.fileSelectBtn}
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            📎 {slipFile ? slipFile.name : "เลือกไฟล์สลิป"}
+                        </button>
 
                         <button
                             className={styles.submitBtn}
@@ -355,18 +403,16 @@ export default function DonatePage() {
                         </button>
                     </div>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
-    // pageState === "form"
-    return (
-        <div className={styles.page}>
+        // pageState === "form"
+        return (
             <div className={styles.card}>
-                <h1 className={styles.title}>สนับสนุนเรา 💙</h1>
+                <h1 className={styles.title}>ใ ห้ ค่ า ข้ า ว พ รี่ ดิ ว</h1>
 
                 <div className={styles.field}>
-                    <label className={styles.label}>ชื่อของคุณ</label>
+                    <label className={styles.label}>ชื่อที่ขึ้นจอ</label>
                     <input
                         className={styles.input}
                         placeholder="ชื่อ"
@@ -419,9 +465,16 @@ export default function DonatePage() {
                     onClick={handleSubmit}
                     disabled={submitting}
                 >
-                    {submitting ? "กำลังสร้าง..." : "บริจาคเลย"}
+                    {submitting ? "กำลังสร้าง..." : "จ่ายเงินที่นี่"}
                 </button>
             </div>
+        );
+    };
+
+    return (
+        <div className={styles.page}>
+            {renderContent()}
+            <ErrorModal />
         </div>
     );
 }

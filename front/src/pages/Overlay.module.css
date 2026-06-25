@@ -16,6 +16,7 @@
     text-align: center;
     color: #ffffff;
     text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+    font-family: "MyFont", sans-serif;
 }
 
 .label {
@@ -41,6 +42,13 @@
     font-size: 18px;
     margin-top: 6px;
     max-width: 500px;
+}
+
+.infoRow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
 }
 
 .image {

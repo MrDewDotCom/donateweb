@@ -68,6 +68,23 @@
     margin: 0;
 }
 
+.progressLabel {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+
+    z-index: 10;
+
+    text-shadow:
+        0 0 3px rgba(0, 0, 0, 0.9),
+        0 0 6px rgba(0, 0, 0, 0.9);
+}
+
 .percentText {
     font-size: 15px;
     font-weight: 600;
