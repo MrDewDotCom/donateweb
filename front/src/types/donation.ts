@@ -4,6 +4,7 @@ export interface Donation {
     id: number;
     name: string;
     message?: string | null;
+    displayMessage?: string | null;
     amount: number;
     status: DonationStatus;
     qrCode?: string | null;

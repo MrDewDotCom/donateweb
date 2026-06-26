@@ -103,7 +103,7 @@ export default function OverlayPage() {
                 settings.readMessageEnabled && nextDonation.message?.trim();
 
             const textToSpeak = shouldReadMessage
-                ? nextDonation.message!
+                ? (nextDonation.displayMessage ?? nextDonation.message)!
                 : `${nextDonation.name} บริจาค ${nextDonation.amount} บาท`;
 
             const speech = new SpeechSynthesisUtterance(textToSpeak);
@@ -176,7 +176,11 @@ export default function OverlayPage() {
                     <h1 className={styles.name}>{donation.name}</h1>
                     <h2 className={styles.amount}>฿{donation.amount.toLocaleString()}</h2>
                 </div>
-                {donation.message && <p className={styles.message}>{donation.message}</p>}
+                {donation.message && (
+                    <p className={styles.message}>
+                        {donation.displayMessage ?? donation.message}
+                    </p>
+                )}
             </div>
         </div>
     );

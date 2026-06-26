@@ -1,14 +1,22 @@
 import { randomUUID } from 'crypto';
 import * as path from 'path';
 import { Donation } from '@prisma/client';
+import { censorMessage } from './censor.util';
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 
-export type SafeDonation = Omit<Donation, 'accessToken'>;
+export type SafeDonation = Omit<Donation, 'accessToken'> & {
+    // ข้อความที่เซนเซอร์คำหยาบแล้ว สำหรับ Overlay/Widget + TTS ใช้แสดงผล/อ่านออกเสียง
+    // message (raw) ยังอยู่ครบเหมือนเดิมเผื่อจุดอื่นต้องใช้ของจริง
+    displayMessage: string | null;
+};
 
 export function sanitizeDonation(donation: Donation): SafeDonation {
     const { accessToken: _token, ...safe } = donation;
-    return safe;
+    return {
+        ...safe,
+        displayMessage: censorMessage(donation.message),
+    };
 }
 
 export function sanitizeDonations(donations: Donation[]): SafeDonation[] {
