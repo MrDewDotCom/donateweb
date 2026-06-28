@@ -13,6 +13,7 @@ import TopDonatorsWidget from "./pages/TopDonatorsWidget";
 import RecentDonationsWidget from "./pages/RecentDonationsWidget";
 import LoginPage from "./pages/Login";
 import ProtectedRoute from "./components/protectedroute";
+import DonatePageLanding from "./pages/DonatePageLanding";
 
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
         <Route path="/top" element={<TopDonatorsWidget />} />
         <Route path="/recent" element={<RecentDonationsWidget />} />
         <Route path="/donate/:id/:token" element={<DonatePage />} />
+        <Route path="/landing" element={<DonatePageLanding />} />
       </Routes>
     </BrowserRouter>
   );

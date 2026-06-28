@@ -349,13 +349,35 @@ export default function DonatePage() {
 
         if (pageState === "paid") {
             return (
-                <div className={styles.card}>
+                <div className={`${styles.card} ${styles.successCard}`}>
+                    {/* Confetti particles */}
+                    <div className={styles.confettiWrap} aria-hidden="true">
+                        {Array.from({ length: 30 }).map((_, i) => (
+                            <span key={i} className={styles.confettiPiece} style={{
+                                "--i": i,
+                                "--x": `${Math.random() * 100}%`,
+                                "--rot": `${Math.random() * 720 - 360}deg`,
+                                "--scale": `${0.6 + Math.random() * 0.8}`,
+                                "--delay": `${Math.random() * 0.5}s`,
+                                "--color": ["#8b5cf6", "#60a5fa", "#34d399", "#fbbf24", "#f472b6", "#a78bfa"][i % 6],
+                            } as React.CSSProperties} />
+                        ))}
+                    </div>
+
                     <div className={styles.statusWrap}>
-                        <div className={styles.statusIcon}>✅</div>
-                        <div className={styles.statusTitle}>บริจาคสำเร็จ</div>
-                        <p className={styles.statusText}>ขอบคุณสำหรับการสนับสนุน 💙</p>
+                        {/* Animated checkmark ring */}
+                        <div className={styles.successRing}>
+                            <svg className={styles.checkSvg} viewBox="0 0 52 52">
+                                <circle className={styles.checkCircle} cx="26" cy="26" r="23" fill="none" />
+                                <path className={styles.checkMark} fill="none" d="M14 26 l8 8 l16-16" />
+                            </svg>
+                            <div className={styles.ringGlow} />
+                        </div>
+
+                        <div className={`${styles.statusTitle} ${styles.successTitle}`}>บริจาคสำเร็จ</div>
+                        <p className={`${styles.statusText} ${styles.successText}`}>ขอบคุณสำหรับการสนับสนุน 💙</p>
                         <button
-                            className={styles.secondaryBtn}
+                            className={`${styles.secondaryBtn} ${styles.successBtn}`}
                             onClick={() => navigate("/")}
                         >
                             สร้างการบริจาคใหม่
@@ -483,7 +505,8 @@ export default function DonatePage() {
     };
 
     return (
-        <div className={styles.page}>
+        <div className={`${styles.page} ${pageState === "paid" ? styles.pagePaid : ""}`}>
+            <div className={styles.pageNoise} aria-hidden="true" />
             {renderContent()}
             <ErrorModal />
         </div>

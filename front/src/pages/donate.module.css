@@ -4,18 +4,131 @@
     align-items: center;
     justify-content: center;
     padding: 24px;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
     font-family: "Segoe UI", system-ui, sans-serif;
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+
+    /* Base dark background */
+    background-color: #0B0B0B;
+    transition: background-color 0.8s ease;
+}
+
+/* Full-page grid pattern */
+.page::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+
+    /* Grid lines */
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+
+    /* Radial mask: grid fades toward edges and bottom */
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%,
+            black 30%,
+            transparent 100%);
+    mask-image: radial-gradient(ellipse 80% 70% at 50% 40%,
+            black 30%,
+            transparent 100%);
+
+    pointer-events: none;
+}
+
+/* Soft blue radial glow behind hero area */
+.page::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+
+    background:
+        /* Blue glow center */
+        radial-gradient(ellipse 60% 45% at 50% 38%,
+            rgba(56, 100, 255, 0.10) 0%,
+            rgba(100, 60, 255, 0.05) 40%,
+            transparent 70%),
+        /* Vignette around edges */
+        radial-gradient(ellipse 100% 100% at 50% 50%,
+            transparent 50%,
+            rgba(0, 0, 0, 0.55) 100%);
+
+    pointer-events: none;
+}
+
+/* ---- Success: full-page green transition ---- */
+.pagePaid {
+    background-color: #021a0e;
+    transition: background-color 0.8s ease;
+}
+
+/* Override the blue glow with a green one */
+.pagePaid::after {
+    background:
+        radial-gradient(ellipse 70% 55% at 50% 38%,
+            rgba(34, 197, 94, 0.18) 0%,
+            rgba(16, 185, 129, 0.08) 45%,
+            transparent 70%),
+        radial-gradient(ellipse 100% 100% at 50% 50%,
+            transparent 50%,
+            rgba(0, 0, 0, 0.55) 100%);
+    animation: greenGlowExpand 1.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes greenGlowExpand {
+    from {
+        opacity: 0;
+        transform: scale(0.6);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Grid tint shifts to green */
+.pagePaid::before {
+    background-image:
+        linear-gradient(rgba(52, 211, 153, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(52, 211, 153, 0.04) 1px, transparent 1px);
+    background-size: 48px 48px;
+}
+
+/* Noise texture overlay for premium feel */
+.pageNoise {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.028;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 128px 128px;
+}
+
+/* Ensure card and content appear above background layers */
+.page>* {
+    position: relative;
+    z-index: 1;
 }
 
 .card {
     width: 100%;
     max-width: 420px;
-    background: #1e1e30;
-    border: 1px solid #2c2c44;
+    background: rgba(18, 18, 18, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 16px;
     padding: 32px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.04),
+        0 8px 40px rgba(0, 0, 0, 0.7),
+        0 2px 8px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     font-family: "MyFont", sans-serif;
 }
 
@@ -44,12 +157,12 @@
 .textarea {
     width: 100%;
     padding: 12px 14px;
-    border: 1px solid #34344f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
     font-size: 15px;
     box-sizing: border-box;
     transition: border-color 0.15s;
-    background: #14141f;
+    background: rgba(0, 0, 0, 0.45);
     color: #f1f1f6;
 }
 
@@ -80,7 +193,7 @@
     bottom: 8px;
     font-size: 11px;
     color: #6b6b85;
-    background: #14141f;
+    background: transparent;
     padding: 0 4px;
     pointer-events: none;
 }
@@ -94,9 +207,9 @@
 .amountChip {
     flex: 1;
     padding: 10px 0;
-    border: 1px solid #34344f;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 10px;
-    background: #14141f;
+    background: rgba(0, 0, 0, 0.45);
     color: #d0d0e0;
     font-weight: 600;
     cursor: pointer;
@@ -141,7 +254,7 @@
     width: 220px;
     height: 220px;
     border-radius: 12px;
-    border: 1px solid #2c2c44;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     margin: 8px auto 16px;
     display: block;
     background: #fff;
@@ -166,8 +279,8 @@
 }
 
 .infoBox {
-    background: #14141f;
-    border: 1px solid #2c2c44;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
     padding: 12px 16px;
     margin-bottom: 16px;
@@ -193,9 +306,9 @@
     width: 100%;
     padding: 12px 14px;
     margin-bottom: 12px;
-    border: 1px dashed #34344f;
+    border: 1px dashed rgba(255, 255, 255, 0.10);
     border-radius: 10px;
-    background: #14141f;
+    background: rgba(0, 0, 0, 0.35);
     color: #c0c0d0;
     font-size: 14px;
     font-weight: 500;
@@ -210,7 +323,7 @@
 
 .fileSelectBtn:hover {
     border-color: #8b5cf6;
-    background: #1a1a2c;
+    background: rgba(139, 92, 246, 0.06);
 }
 
 /* Status pages: paid / expired / not_found */
@@ -248,7 +361,7 @@
 }
 
 .secondaryBtn:hover {
-    background: #2a1f4a;
+    background: rgba(139, 92, 246, 0.1);
 }
 
 .loadingWrap {
@@ -273,12 +386,14 @@
 .modalBox {
     width: 100%;
     max-width: 340px;
-    background: #1e1e30;
-    border: 1px solid #2c2c44;
+    background: rgba(15, 15, 15, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.07);
     border-radius: 16px;
     padding: 28px 24px;
     text-align: center;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    box-shadow: 0 12px 60px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     animation: popIn 0.15s ease-out;
 }
 
@@ -431,5 +546,181 @@
     .qrImg {
         width: 150px;
         height: 150px;
+    }
+}
+
+/* ============================================================
+   SUCCESS / PAID STATE ANIMATIONS
+   ============================================================ */
+
+/* Card entrance */
+.successCard {
+    animation: successCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    overflow: hidden;
+    position: relative;
+}
+
+@keyframes successCardIn {
+    from {
+        opacity: 0;
+        transform: scale(0.88) translateY(16px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* ---------- Confetti ---------- */
+.confettiWrap {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
+}
+
+.confettiPiece {
+    position: absolute;
+    top: -10px;
+    left: var(--x);
+    width: 7px;
+    height: 12px;
+    border-radius: 2px;
+    background-color: var(--color);
+    transform-origin: center bottom;
+    animation: confettiFall 1.4s var(--delay, 0s) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    opacity: 0;
+}
+
+@keyframes confettiFall {
+    0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg) scale(var(--scale));
+    }
+
+    80% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(340px) rotate(var(--rot)) scale(var(--scale));
+    }
+}
+
+/* ---------- SVG Checkmark ring ---------- */
+.successRing {
+    position: relative;
+    width: 88px;
+    height: 88px;
+    margin: 0 auto 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ringGlow {
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(52, 211, 153, 0.25) 0%, transparent 70%);
+    animation: glowPulse 2s ease-in-out infinite;
+}
+
+@keyframes glowPulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.12);
+    }
+}
+
+.checkSvg {
+    width: 88px;
+    height: 88px;
+    filter: drop-shadow(0 0 10px rgba(52, 211, 153, 0.5));
+}
+
+/* Circle draw */
+.checkCircle {
+    stroke: #34d399;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 145;
+    stroke-dashoffset: 145;
+    animation: drawCircle 0.55s 0.1s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+@keyframes drawCircle {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Checkmark draw */
+.checkMark {
+    stroke: #34d399;
+    stroke-width: 3.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 40;
+    stroke-dashoffset: 40;
+    animation: drawCheck 0.35s 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+@keyframes drawCheck {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* ---------- Text & button entrance ---------- */
+.successTitle {
+    animation: fadeSlideUp 0.4s 0.75s ease both;
+}
+
+.successText {
+    animation: fadeSlideUp 0.4s 0.9s ease both;
+}
+
+.successBtn {
+    animation: fadeSlideUp 0.4s 1.05s ease both;
+}
+
+@keyframes fadeSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+
+    .successCard,
+    .confettiPiece,
+    .checkCircle,
+    .checkMark,
+    .ringGlow,
+    .successTitle,
+    .successText,
+    .successBtn {
+        animation: none;
+        opacity: 1;
+        transform: none;
+        stroke-dashoffset: 0;
     }
 }
