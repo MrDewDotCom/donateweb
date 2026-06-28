@@ -52,7 +52,7 @@ export default function DonatePage() {
         currentKeyRef.current = key;
 
         if (!id || !token) {
-            setPageState("form");
+            resetForm();
             return;
         }
 
@@ -285,6 +285,17 @@ export default function DonatePage() {
         );
     };
 
+
+    const resetForm = () => {
+        setName("Anonymous");
+        setMessage("");
+        setAmount(20);
+        setQrCode("");
+        setSlipFile(null);
+        setExpiresAt(null);
+        setRemainingSec(null);
+        setPageState("form");
+    };
     // ---------- หน้าจอตาม state ----------
 
     const renderContent = () => {

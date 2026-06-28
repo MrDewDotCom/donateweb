@@ -15,6 +15,7 @@
     font-weight: 800;
     margin: 0;
     letter-spacing: 0.5px;
+    font-family: "MyFont", sans-serif;
 }
 
 .barTrack {
@@ -66,6 +67,7 @@
     font-size: 18px;
     font-weight: 700;
     margin: 0;
+    font-family: "MyFont", sans-serif;
 }
 
 .progressLabel {
@@ -90,6 +92,7 @@
     font-weight: 600;
     opacity: 0.9;
     margin: 0;
+    font-family: "MyFont", sans-serif;
 }
 
 .loadingWrap {
