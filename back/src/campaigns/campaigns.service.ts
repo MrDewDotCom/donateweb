@@ -90,51 +90,50 @@ export class CampaignsService {
         };
     }
 
-
+    // คำนวณ Top Donators ตามโหมดที่ตั้งไว้ใน Settings:
+    // - "all"      -> รวมทุกยอดโดเนทตลอดเวลา ไม่ filter วันที่
+    // - "campaign" -> อิงช่วง startDate-endDate ของ campaign ที่ active อยู่ (พฤติกรรมเดิม)
+    // - "custom"   -> อิงช่วงวันที่ที่ admin กำหนดเองใน Settings (topDonatorFrom/To)
     async getTopDonators() {
-        const campaign =
-            await this.prisma.campaign.findFirst({
-                where: {
-                    isActive: true,
-                },
-            });
+        const settings = await this.prisma.setting.findFirst();
+        const mode = settings?.topDonatorMode ?? 'campaign';
 
-        if (!campaign) {
-            return [];
+        const where: { status: string; paidAt?: { gte?: Date; lte?: Date } } = {
+            status: 'paid',
+        };
+
+        // ใช้ topDonatorLimit ของ campaign เป็นค่า default ถ้ามี campaign active,
+        // ไม่งั้น fallback ไปใช้ topDonatorsLimit ของ Setting
+        const activeCampaign = await this.prisma.campaign.findFirst({
+            where: { isActive: true },
+        });
+        const limit = activeCampaign?.topDonatorLimit ?? settings?.topDonatorsLimit ?? 3;
+
+        if (mode === 'campaign') {
+            if (!activeCampaign) {
+                return []; // คงพฤติกรรมเดิม: ไม่มี campaign active ก็ไม่มีอะไรให้โชว์
+            }
+            where.paidAt = { gte: activeCampaign.startDate, lte: activeCampaign.endDate };
+        } else if (mode === 'custom') {
+            const range: { gte?: Date; lte?: Date } = {};
+            if (settings?.topDonatorFrom) range.gte = settings.topDonatorFrom;
+            if (settings?.topDonatorTo) range.lte = settings.topDonatorTo;
+            if (range.gte || range.lte) where.paidAt = range;
         }
+        // mode === 'all' -> ไม่ filter วันที่เลย
 
-        const donations =
-            await this.prisma.donation.findMany({
-                where: {
-                    status: "paid",
-                    paidAt: {
-                        gte: campaign.startDate,
-                        lte: campaign.endDate,
-                    },
-                },
-            });
+        const grouped = await this.prisma.donation.groupBy({
+            by: ['name'],
+            where,
+            _sum: { amount: true },
+            orderBy: { _sum: { amount: 'desc' } },
+            take: limit,
+        });
 
-        const totals = donations.reduce(
-            (acc, donation) => {
-                acc[donation.name] =
-                    (acc[donation.name] || 0) +
-                    donation.amount;
-
-                return acc;
-            },
-            {} as Record<string, number>,
-        );
-
-        return Object.entries(totals)
-            .map(([name, total]) => ({
-                name,
-                total,
-            }))
-            .sort(
-                (a, b) =>
-                    b.total - a.total,
-            )
-            .slice(0, campaign.topDonatorLimit,);
+        return grouped.map((g) => ({
+            name: g.name,
+            total: g._sum.amount ?? 0,
+        }));
     }
 
     async getRecentDonations() {

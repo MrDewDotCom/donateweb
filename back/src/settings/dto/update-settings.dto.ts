@@ -1,6 +1,7 @@
-import { IsBoolean, IsIn, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsIn, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 const OVERLAY_ANIMATIONS = ['fade', 'slide', 'zoom', 'bounce'] as const;
+const TOP_DONATOR_MODES = ['all', 'campaign', 'custom'] as const;
 
 export class UpdateSettingsDto {
     @IsOptional()
@@ -77,4 +78,17 @@ export class UpdateSettingsDto {
     @IsOptional()
     @IsBoolean()
     goalEffectEnabled?: boolean;
+
+    // Top Donators
+    @IsOptional()
+    @IsIn(TOP_DONATOR_MODES)
+    topDonatorMode?: string;
+
+    @IsOptional()
+    @IsDateString()
+    topDonatorFrom?: string;
+
+    @IsOptional()
+    @IsDateString()
+    topDonatorTo?: string;
 }

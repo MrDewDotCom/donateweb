@@ -828,6 +828,80 @@ export default function SettingsPage() {
                                         : "สร้างแคมเปญใหม่"}
                             </button>
                         </div>
+
+                        <div className={styles.card}>
+                            <div className={styles.sectionTitle}>Top Donators</div>
+
+                            <div className={styles.field}>
+                                <label className={styles.label}>ช่วงเวลาที่ใช้คำนวณ</label>
+                                <select
+                                    className={styles.input}
+                                    value={settings.topDonatorMode}
+                                    onChange={(e) =>
+                                        setSettings({
+                                            ...settings,
+                                            topDonatorMode: e.target.value as Settings["topDonatorMode"],
+                                        })
+                                    }
+                                >
+                                    <option value="all">ตลอดเวลา (All-time)</option>
+                                    <option value="campaign">แคมเปญที่กำลังทำงานอยู่</option>
+                                    <option value="custom">กำหนดช่วงเอง</option>
+                                </select>
+                            </div>
+
+                            {settings.topDonatorMode === "custom" && (
+                                <>
+                                    <div className={styles.field}>
+                                        <label className={styles.label}>จากวันที่</label>
+                                        <input
+                                            className={styles.input}
+                                            type="date"
+                                            value={toDateInput(settings.topDonatorFrom ?? undefined)}
+                                            onChange={(e) =>
+                                                setSettings({
+                                                    ...settings,
+                                                    topDonatorFrom: e.target.value
+                                                        ? new Date(e.target.value).toISOString()
+                                                        : null,
+                                                })
+                                            }
+                                        />
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label className={styles.label}>ถึงวันที่</label>
+                                        <input
+                                            className={styles.input}
+                                            type="date"
+                                            value={toDateInput(settings.topDonatorTo ?? undefined)}
+                                            onChange={(e) =>
+                                                setSettings({
+                                                    ...settings,
+                                                    topDonatorTo: e.target.value
+                                                        ? new Date(e.target.value).toISOString()
+                                                        : null,
+                                                })
+                                            }
+                                        />
+                                    </div>
+                                </>
+                            )}
+
+                            {settings.topDonatorMode === "campaign" && !campaign && (
+                                <p className={styles.hint}>
+                                    ยังไม่มีแคมเปญที่ active — ถ้าเลือกโหมดนี้ระบบจะแสดงลิสต์ว่างไว้ก่อน
+                                </p>
+                            )}
+
+                            <button
+                                className={`${styles.btn} ${styles.primary}`}
+                                onClick={handleSave}
+                                disabled={saving}
+                                style={{ width: "100%", marginTop: 16 }}
+                            >
+                                {saving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+                            </button>
+                        </div>
                     </>
                 )}
             </div>

@@ -53,4 +53,8 @@ model Setting {
   monthlyGoalAmount    Int?
   monthlyGoalAutoReset Boolean @default(true) // true = นับเฉพาะเดือนปัจจุบัน, false = นับสะสมตลอดเวลา
   goalEffectEnabled    Boolean @default(true)
+  // Top Donators
+  topDonatorMode String    @default("all") // all | campaign | custom
+  topDonatorFrom DateTime? // ใช้เมื่อ topDonatorMode = "custom"
+  topDonatorTo   DateTime? // ใช้เมื่อ topDonatorMode = "custom"
 }

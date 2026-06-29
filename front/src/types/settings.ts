@@ -25,6 +25,11 @@ export interface Settings {
     monthlyGoalAmount?: number | null;
     monthlyGoalAutoReset: boolean;
     goalEffectEnabled: boolean;
+
+    // Top Donators
+    topDonatorMode: "all" | "campaign" | "custom";
+    topDonatorFrom?: string | null;
+    topDonatorTo?: string | null;
 }
 
 export interface MonthlyGoalProgress {
