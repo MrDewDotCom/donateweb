@@ -1,15 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { getDailyStats } from '../services/donation.service';
 import { getProgress, getTopDonators, getRecentDonations } from '../services/campaign.service';
 import type { TopDonator } from '../types/topDonator';
 import type { RecentDonation } from '../types/recentDonation';
 import styles from './DonatePageLanding.module.css';
-
-interface DailyStat {
-    date: string;
-    total: number;
-}
 
 interface GoalProgress {
     title?: string;
@@ -19,9 +13,8 @@ interface GoalProgress {
 }
 
 export default function DonatePageLanding() {
-    const [topDonator, setTopDonator] = useState<TopDonator | null>(null);
+    const [topDonators, setTopDonators] = useState<TopDonator[]>([]);
     const [campaignProgress, setCampaignProgress] = useState<GoalProgress | null>(null);
-    const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
     const [recentDonation, setRecentDonation] = useState<RecentDonation | null>(null);
 
     useEffect(() => {
@@ -30,7 +23,7 @@ export default function DonatePageLanding() {
             // เพราะถ้าตัวใดตัวหนึ่ง fail (เช่น endpoint นี้ error) จะไม่ให้กราฟ/ข้อมูลอื่นพังตามไปด้วย
             try {
                 const topRes = await getTopDonators();
-                setTopDonator(topRes.data[0] ?? null);
+                setTopDonators(topRes.data ?? []);
             } catch (err) {
                 console.error('getTopDonators failed', err);
             }
@@ -40,13 +33,6 @@ export default function DonatePageLanding() {
                 setCampaignProgress(progressRes.data);
             } catch (err) {
                 console.error('getProgress failed', err);
-            }
-
-            try {
-                const statsRes = await getDailyStats(7);
-                setDailyStats(statsRes.data);
-            } catch (err) {
-                console.error('getDailyStats failed', err);
             }
 
             try {
@@ -62,22 +48,7 @@ export default function DonatePageLanding() {
         return () => clearInterval(interval);
     }, []);
 
-    // build sparkline points from daily stats (7 days), 300x64 viewBox
-    const chartPoints = (() => {
-        if (dailyStats.length === 0) return '';
-        const max = Math.max(...dailyStats.map((d) => d.total), 1);
-        const stepX = 300 / (dailyStats.length - 1 || 1);
-        return dailyStats
-            .map((d, i) => {
-                const x = i * stepX;
-                const y = 58 - (d.total / max) * 52;
-                return `${x.toFixed(1)},${y.toFixed(1)}`;
-            })
-            .join(' ');
-    })();
-    const chartPolygonPoints = chartPoints
-        ? `${chartPoints} 300,64 0,64`
-        : '';
+    const topDonator = topDonators[0] ?? null;
 
     return (
         <div className={styles.page}>
@@ -104,7 +75,7 @@ export default function DonatePageLanding() {
                 <section className={styles.hero}>
                     <div className={styles.heroGrid}>
                         <div>
-                            <div className={styles.eyebrow}>Donation Control Center</div>
+                            <div className={styles.eyebrow}>Dew Donation Center</div>
                             <h1 className={styles.h1}>
                                 Thanks
                                 <br />
@@ -136,7 +107,7 @@ export default function DonatePageLanding() {
 
                             <div className={styles.mockStats}>
                                 <div className={styles.statCard}>
-                                    <div className={styles.statLabel}>TOP DONATOR</div>
+                                    <div className={styles.statLabel}>Special Thanks</div>
                                     <div className={styles.statValue}>
                                         {topDonator ? topDonator.name : '—'}
                                     </div>
@@ -164,25 +135,29 @@ export default function DonatePageLanding() {
 
                             <div className={styles.mockChart}>
                                 <div className={styles.mockChartHead}>
-                                    <span>Donations / 7 days</span>
+                                    <span>Top Donators</span>
                                     <span>THB</span>
                                 </div>
-                                {chartPoints ? (
-                                    <svg width="100%" height="64" viewBox="0 0 300 64" preserveAspectRatio="none">
-                                        <defs>
-                                            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.35} />
-                                                <stop offset="100%" stopColor="#3B82F6" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <polyline
-                                            points={chartPoints}
-                                            fill="none"
-                                            stroke="#3B82F6"
-                                            strokeWidth={2}
-                                        />
-                                        <polygon points={chartPolygonPoints} fill="url(#chartFill)" />
-                                    </svg>
+                                {topDonators.length > 0 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                        {topDonators.slice(0, 3).map((d) => (
+                                            <div
+                                                key={d.name}
+                                                style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                }}
+                                            >
+                                                <span className={styles.statDelta}>
+                                                    {d.name}
+                                                </span>
+                                                <span className={styles.feedAmount}>
+                                                    ฿{d.total.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
                                     <div className={styles.statDelta} style={{ height: 64, display: 'flex', alignItems: 'center' }}>
                                         No data yet
@@ -190,14 +165,20 @@ export default function DonatePageLanding() {
                                 )}
                             </div>
 
-                            <div className={styles.mockFeed}>
-                                <div className={styles.feedAvatar} />
-                                <div className={styles.feedText}>
-                                    <b>{recentDonation ? recentDonation.name : 'No donations yet'}</b>
-                                    {recentDonation ? ' donated · slip verified' : ''}
+                            <div className={styles.mockChart}>
+                                <div className={styles.mockChartHead}>
+                                    <span>Recent Donation</span>
+                                    <span>THB</span>
                                 </div>
-                                <div className={styles.feedAmount}>
-                                    {recentDonation ? `+฿${recentDonation.amount.toLocaleString()}` : ''}
+                                <div className={styles.mockFeed}>
+                                    <div className={styles.feedAvatar} />
+                                    <div className={styles.feedText}>
+                                        <b>{recentDonation ? recentDonation.name : 'No donations yet'}</b>
+                                        {recentDonation ? ' donated · slip verified' : ''}
+                                    </div>
+                                    <div className={styles.feedAmount}>
+                                        {recentDonation ? `+฿${recentDonation.amount.toLocaleString()}` : ''}
+                                    </div>
                                 </div>
                             </div>
                         </div>
