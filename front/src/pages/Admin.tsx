@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Donation } from "../types/donation";
 import { getDonations, markDonationAsPaid, getDailyStats } from "../services/donation.service";
@@ -18,6 +18,8 @@ interface GoalProgress {
     currentAmount: number;
     percentage: number;
 }
+
+type StatusFilter = "all" | "paid" | "pending" | "failed";
 
 const WIDGET_LINKS = [
     {
@@ -45,16 +47,26 @@ const WIDGET_LINKS = [
 export default function AdminPage() {
     const [donations, setDonations] = useState<Donation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [dailyStats, setDailyStats] = useState<DailyStat[]>([]);
     const [campaignProgress, setCampaignProgress] = useState<GoalProgress | null>(null);
     const [monthlyProgress, setMonthlyProgress] = useState<GoalProgress | null>(null);
+    const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
+    const [refreshing, setRefreshing] = useState(false);
+
+    // search / filter / sort
+    const [search, setSearch] = useState("");
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+    const [sortBy, setSortBy] = useState<"newest" | "oldest" | "amount">("newest");
 
     const loadDonations = async () => {
         try {
             const res = await getDonations();
             setDonations(res.data);
+            setLoadError(null);
         } catch (err) {
             console.error(err);
+            setLoadError("โหลดรายการบริจาคไม่สำเร็จ");
         } finally {
             setLoading(false);
         }
@@ -83,27 +95,88 @@ export default function AdminPage() {
         }
     };
 
+    const loadAll = async () => {
+        await Promise.all([loadDonations(), loadDailyStats(), loadGoalProgress()]);
+    };
+
+    const handleRefresh = async () => {
+        setRefreshing(true);
+        await loadAll();
+        setRefreshing(false);
+    };
+
     const markAsPaid = async (id: number) => {
-        await markDonationAsPaid(id);
-        loadDonations();
-        loadDailyStats();
-        loadGoalProgress();
+        if (pendingIds.has(id)) return; // guard against double-click
+
+        setPendingIds((prev) => new Set(prev).add(id));
+
+        // optimistic update so the row reflects the change immediately
+        setDonations((prev) =>
+            prev.map((d) => (d.id === id ? { ...d, status: "paid" } : d)),
+        );
+
+        try {
+            await markDonationAsPaid(id);
+            await Promise.all([loadDailyStats(), loadGoalProgress()]);
+        } catch (err) {
+            console.error(err);
+            // roll back on failure
+            setDonations((prev) =>
+                prev.map((d) => (d.id === id ? { ...d, status: "pending" } : d)),
+            );
+            alert("อัปเดตสถานะไม่สำเร็จ กรุณาลองใหม่");
+        } finally {
+            setPendingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+            });
+        }
     };
 
     useEffect(() => {
-        loadDonations();
-        loadDailyStats();
-        loadGoalProgress();
+        loadAll();
     }, []);
 
-    const copyLink = (path: string) => {
+    const copyLink = async (path: string) => {
         const url = `${window.location.origin}${path}`;
-        navigator.clipboard.writeText(url);
-        alert("คัดลอกลิงก์แล้ว");
+        try {
+            await navigator.clipboard.writeText(url);
+            alert("คัดลอกลิงก์แล้ว");
+        } catch (err) {
+            console.error(err);
+            alert("คัดลอกลิงก์ไม่สำเร็จ");
+        }
     };
 
     const totalPaid = donations.filter((d) => d.status === "paid");
     const totalAmount = totalPaid.reduce((sum, d) => sum + d.amount, 0);
+
+    const visibleDonations = useMemo(() => {
+        let list = [...donations];
+
+        if (statusFilter !== "all") {
+            list = list.filter((d) => d.status === statusFilter);
+        }
+
+        if (search.trim()) {
+            const q = search.trim().toLowerCase();
+            list = list.filter(
+                (d) =>
+                    d.name.toLowerCase().includes(q) ||
+                    (d.message ?? "").toLowerCase().includes(q),
+            );
+        }
+
+        list.sort((a, b) => {
+            if (sortBy === "amount") return b.amount - a.amount;
+            const aTime = new Date((a as any).createdAt ?? 0).getTime();
+            const bTime = new Date((b as any).createdAt ?? 0).getTime();
+            return sortBy === "newest" ? bTime - aTime : aTime - bTime;
+        });
+
+        return list;
+    }, [donations, statusFilter, search, sortBy]);
 
     return (
         <div className={styles.page}>
@@ -117,6 +190,15 @@ export default function AdminPage() {
                     <Link to="/settings" className={styles.navTab}>
                         Settings
                     </Link>
+                    <button
+                        type="button"
+                        className={styles.smallBtn}
+                        onClick={handleRefresh}
+                        disabled={refreshing}
+                        style={{ marginLeft: "auto" }}
+                    >
+                        {refreshing ? "กำลังรีเฟรช..." : "รีเฟรช"}
+                    </button>
                 </div>
             </div>
 
@@ -268,63 +350,122 @@ export default function AdminPage() {
             <div className={styles.section}>
                 <div className={styles.sectionTitle}>รายการบริจาค</div>
 
+                {/* แถบค้นหา / กรอง / เรียงลำดับ */}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                    <input
+                        type="text"
+                        placeholder="ค้นหาชื่อหรือข้อความ..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        aria-label="ค้นหารายการบริจาค"
+                        style={{
+                            flex: "1 1 220px",
+                            padding: "8px 12px",
+                            borderRadius: 8,
+                            border: "1px solid #ccc",
+                        }}
+                    />
+                    <select
+                        value={statusFilter}
+                        onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                        aria-label="กรองตามสถานะ"
+                        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ccc" }}
+                    >
+                        <option value="all">ทุกสถานะ</option>
+                        <option value="paid">จ่ายแล้ว</option>
+                        <option value="pending">รอชำระ</option>
+                        <option value="failed">ล้มเหลว/หมดเวลา</option>
+                    </select>
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                        aria-label="เรียงลำดับ"
+                        style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #ccc" }}
+                    >
+                        <option value="newest">ใหม่สุดก่อน</option>
+                        <option value="oldest">เก่าสุดก่อน</option>
+                        <option value="amount">ยอดเงินสูงสุด</option>
+                    </select>
+                </div>
+
                 {loading && <p className={styles.emptyText}>กำลังโหลด...</p>}
 
-                {!loading && donations.length === 0 && (
+                {!loading && loadError && (
+                    <p className={styles.emptyText}>
+                        {loadError}{" "}
+                        <button
+                            type="button"
+                            className={styles.smallBtn}
+                            onClick={loadDonations}
+                        >
+                            ลองใหม่
+                        </button>
+                    </p>
+                )}
+
+                {!loading && !loadError && donations.length === 0 && (
                     <p className={styles.emptyText}>ยังไม่มีรายการบริจาค</p>
                 )}
 
+                {!loading && !loadError && donations.length > 0 && visibleDonations.length === 0 && (
+                    <p className={styles.emptyText}>ไม่พบรายการที่ตรงกับการค้นหา</p>
+                )}
+
                 <div className={styles.donationGrid}>
-                    {donations.map((d) => (
-                        <div key={d.id} className={styles.donationCard}>
-                            <div className={styles.donationInfo}>
-                                <div className={styles.donationName}>{d.name}</div>
-                                {d.message && (
-                                    <div className={styles.donationMessage}>{d.message}</div>
-                                )}
-                                <div className={styles.donationAmount}>
-                                    {d.amount.toLocaleString()} บาท
+                    {visibleDonations.map((d) => {
+                        const isPending = pendingIds.has(d.id);
+                        return (
+                            <div key={d.id} className={styles.donationCard}>
+                                <div className={styles.donationInfo}>
+                                    <div className={styles.donationName}>{d.name}</div>
+                                    {d.message && (
+                                        <div className={styles.donationMessage}>{d.message}</div>
+                                    )}
+                                    <div className={styles.donationAmount}>
+                                        {d.amount.toLocaleString()} บาท
+                                    </div>
+                                </div>
+
+                                <div className={styles.donationActions}>
+                                    <span
+                                        className={`${styles.badge} ${d.status === "paid"
+                                            ? styles.paid
+                                            : d.status === "failed"
+                                                ? styles.failed
+                                                : styles.pending
+                                            }`}
+                                    >
+                                        {d.status === "paid"
+                                            ? "จ่ายแล้ว"
+                                            : d.status === "failed"
+                                                ? "ล้มเหลว/หมดเวลา"
+                                                : "รอชำระ"}
+                                    </span>
+
+                                    {d.slipImage && (
+                                        <a
+                                            href={`${API_URL}${d.slipImage}`}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className={styles.slipLink}
+                                        >
+                                            ดูสลิป
+                                        </a>
+                                    )}
+
+                                    {d.status !== "paid" && (
+                                        <button
+                                            className={`${styles.smallBtn} ${styles.primary}`}
+                                            onClick={() => markAsPaid(d.id)}
+                                            disabled={isPending}
+                                        >
+                                            {isPending ? "กำลังอัปเดต..." : "Mark as Paid"}
+                                        </button>
+                                    )}
                                 </div>
                             </div>
-
-                            <div className={styles.donationActions}>
-                                <span
-                                    className={`${styles.badge} ${d.status === "paid"
-                                        ? styles.paid
-                                        : d.status === "failed"
-                                            ? styles.failed
-                                            : styles.pending
-                                        }`}
-                                >
-                                    {d.status === "paid"
-                                        ? "จ่ายแล้ว"
-                                        : d.status === "failed"
-                                            ? "ล้มเหลว/หมดเวลา"
-                                            : "รอชำระ"}
-                                </span>
-
-                                {d.slipImage && (
-                                    <a
-                                        href={`${API_URL}${d.slipImage}`}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className={styles.slipLink}
-                                    >
-                                        ดูสลิป
-                                    </a>
-                                )}
-
-                                {d.status !== "paid" && (
-                                    <button
-                                        className={`${styles.smallBtn} ${styles.primary}`}
-                                        onClick={() => markAsPaid(d.id)}
-                                    >
-                                        Mark as Paid
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             </div>
         </div>

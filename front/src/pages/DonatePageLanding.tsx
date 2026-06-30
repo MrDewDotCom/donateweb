@@ -62,11 +62,6 @@ export default function DonatePageLanding() {
                         <div className={styles.logoMark}>D</div>
                         Dewdabid
                     </div>
-                    <div className={styles.navRight}>
-                        <Link to="/login" className={`${styles.btn} ${styles.btnGhost} ${styles.btnSm}`}>
-                            Login
-                        </Link>
-                    </div>
                 </div>
             </nav>
 
@@ -87,7 +82,7 @@ export default function DonatePageLanding() {
                                 Every donation helps me create better content and continue doing what I love. Thank you for being part of this journey.
                             </p>
                             <div className={styles.heroActions}>
-                                <Link to="/" className={`${styles.btn} ${styles.btnPrimary}`}>
+                                <Link to="/donate" className={`${styles.btn} ${styles.btnPrimary}`}>
                                     Donate Now
                                 </Link>
                             </div>

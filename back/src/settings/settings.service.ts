@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'prisma/src/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { DonationsGateway } from 'src/donations/donations.gateway';
+import { TtsService } from 'src/tts/tts.service';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -45,6 +46,7 @@ export class SettingsService {
     constructor(
         private prisma: PrismaService,
         private donationsGateway: DonationsGateway,
+        private ttsService: TtsService,
     ) { }
 
     async getSettings() {
@@ -202,13 +204,40 @@ export class SettingsService {
             .map((filename) => ({ filename, url: `/overlay-images/${filename}` }));
     }
 
+    // สร้างข้อความตัวอย่างสำหรับ "ทดสอบ TTS" — ใช้กฎเดียวกับตอน donation จริง
+    // (อ่านข้อความ vs อ่านแค่ชื่อ+จำนวนเงิน ตาม readMessageEnabled)
+    private buildTestTtsText(settings: { readMessageEnabled: boolean }): string {
+        return settings.readMessageEnabled
+            ? 'สวัสดี นี่คือการทดสอบเสียงอ่านข้อความ'
+            : 'ทดสอบ ผู้บริจาค บริจาคหนึ่งร้อยบาท';
+    }
+
+    // ใช้จากปุ่ม "ทดสอบ TTS" ในหน้า Settings — generate ไฟล์เสียงจริงผ่าน Edge TTS
+    // แล้วคืน URL ให้ frontend เล่นด้วย <audio> เอง (ไม่ผ่าน socket)
+    async testTts() {
+        const settings = await this.getSettings();
+        const text = this.buildTestTtsText(settings);
+
+        const url = await this.ttsService.generate(text);
+
+        if (!url) {
+            throw new BadRequestException('สร้างเสียง TTS ไม่สำเร็จ');
+        }
+
+        return { url };
+    }
+
     // ส่ง donation ปลอมผ่าน socket เพื่อให้ Admin เห็น Overlay จริงตอนกำลังปรับ Settings
-    // ไม่บันทึกอะไรลง DB เลย เป็นแค่ event ทดสอบ
-    testOverlay() {
+    // ไม่บันทึกอะไรลง DB เลย เป็นแค่ event ทดสอบ — แนบ ttsAudioUrl ไปด้วยถ้าเปิด TTS ไว้
+    // เพื่อให้ overlay เล่นเสียงจริงเหมือน donation จริงทุกประการ
+    async testOverlay() {
+        const settings = await this.getSettings();
+
         const fakeDonation = {
             id: 0,
             name: 'ทดสอบ Overlay',
             message: 'นี่คือข้อความทดสอบจากหน้า Settings',
+            displayMessage: 'นี่คือข้อความทดสอบจากหน้า Settings',
             amount: 100,
             status: 'paid',
             createdAt: new Date(),
@@ -220,7 +249,19 @@ export class SettingsService {
             expiresAt: null,
         };
 
-        this.donationsGateway.emitDonationPaid(fakeDonation as any);
+        let ttsAudioUrl: string | null = null;
+        if (settings.ttsEnabled) {
+            const shouldReadMessage =
+                settings.readMessageEnabled && fakeDonation.message.trim();
+
+            const textToSpeak = shouldReadMessage
+                ? fakeDonation.displayMessage
+                : `${fakeDonation.name} บริจาค ${fakeDonation.amount} บาท`;
+
+            ttsAudioUrl = await this.ttsService.generate(textToSpeak);
+        }
+
+        this.donationsGateway.emitDonationPaid(fakeDonation as any, ttsAudioUrl);
 
         return { success: true };
     }

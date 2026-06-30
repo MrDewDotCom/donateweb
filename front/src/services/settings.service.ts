@@ -50,3 +50,7 @@ export const uploadOverlayImage = (file: File) => {
 // ส่ง donation ปลอมไปแสดงที่หน้า Overlay จริงเพื่อพรีวิว
 export const testOverlay =
     () => adminApi.post(`${API_URL}/settings/test-overlay`);
+
+// generate เสียงทดสอบจาก Edge TTS (backend) แล้วคืน { url } ให้เล่นด้วย <audio>
+export const testTts =
+    () => adminApi.post<{ url: string }>(`${API_URL}/settings/test-tts`);

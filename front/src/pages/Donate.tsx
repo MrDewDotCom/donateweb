@@ -378,7 +378,7 @@ export default function DonatePage() {
                         <p className={`${styles.statusText} ${styles.successText}`}>ขอบคุณสำหรับการสนับสนุน 💙</p>
                         <button
                             className={`${styles.secondaryBtn} ${styles.successBtn}`}
-                            onClick={() => navigate("/")}
+                            onClick={() => navigate("/donate")}
                         >
                             สร้างการบริจาคใหม่
                         </button>

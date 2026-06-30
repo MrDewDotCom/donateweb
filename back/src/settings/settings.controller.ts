@@ -101,6 +101,15 @@ export class SettingsController {
         return this.settingsService.testOverlay();
     }
 
+    // generate ไฟล์เสียง Edge TTS ตัวอย่าง แล้วคืน URL ให้ frontend เล่นเอง
+    // ใช้กับปุ่ม "ทดสอบ TTS" ในหน้า Settings
+    @Throttle({ default: { limit: 10, ttl: 60000 } })
+    @UseGuards(JwtAuthGuard)
+    @Post('test-tts')
+    testTts() {
+        return this.settingsService.testTts();
+    }
+
     @UseGuards(JwtAuthGuard)
     @Patch()
     updateSettings(

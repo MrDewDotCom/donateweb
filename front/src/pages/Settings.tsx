@@ -10,6 +10,7 @@ import {
     getCustomSounds,
     uploadSound,
     testOverlay,
+    testTts,
     getOverlayImages,
     uploadOverlayImage,
 } from "../services/settings.service";
@@ -43,7 +44,6 @@ export default function SettingsPage() {
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [campaignLoaded, setCampaignLoaded] = useState(false);
     const [settings, setSettings] = useState<Settings | null>(null);
-    const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
     const [saving, setSaving] = useState(false);
     const [savingCampaign, setSavingCampaign] = useState(false);
     const [monthlyProgress, setMonthlyProgress] = useState<MonthlyGoalProgress | null>(null);
@@ -52,6 +52,7 @@ export default function SettingsPage() {
     const [uploadingSound, setUploadingSound] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [testingOverlay, setTestingOverlay] = useState(false);
+    const [testingTts, setTestingTts] = useState(false);
 
     const [campaignForm, setCampaignForm] = useState({
         title: "",
@@ -67,15 +68,6 @@ export default function SettingsPage() {
         loadMonthlyProgress();
         loadCustomSounds();
         loadOverlayImages();
-    }, []);
-
-    useEffect(() => {
-        const loadVoices = () => {
-            setVoices(window.speechSynthesis.getVoices());
-        };
-
-        loadVoices();
-        window.speechSynthesis.onvoiceschanged = loadVoices;
     }, []);
 
     const loadSettings = async () => {
@@ -279,21 +271,18 @@ export default function SettingsPage() {
         }
     };
 
-    const testTts = () => {
-        if (!settings) return;
-
-        const text = settings.readMessageEnabled
-            ? "สวัสดี นี่คือการทดสอบเสียงอ่านข้อความ"
-            : "ทดสอบ ผู้บริจาค บริจาคหนึ่งร้อยบาท";
-
-        const speech = new SpeechSynthesisUtterance(text);
-        speech.lang = "th-TH";
-
-        const selectedVoice = voices.find((v) => v.name === settings.ttsVoice);
-        if (selectedVoice) speech.voice = selectedVoice;
-
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(speech);
+    const handleTestTts = async () => {
+        setTestingTts(true);
+        try {
+            const res = await testTts();
+            const audio = new Audio(`${API_URL}${res.data.url}`);
+            await audio.play();
+        } catch (err) {
+            console.error(err);
+            alert("ทดสอบ TTS ไม่สำเร็จ");
+        } finally {
+            setTestingTts(false);
+        }
     };
 
     const testSound = () => {
@@ -521,23 +510,11 @@ export default function SettingsPage() {
                         </div>
 
                         <div className={styles.field}>
-                            <label className={styles.label}>เลือกเสียง TTS</label>
-                            <select
-                                className={styles.select}
-                                value={settings.ttsVoice ?? ""}
-                                onChange={(e) =>
-                                    setSettings({ ...settings, ttsVoice: e.target.value })
-                                }
-                            >
-                                <option value="">Default</option>
-                                {voices
-                                    .filter((v) => v.lang === "th-TH")
-                                    .map((v) => (
-                                        <option key={v.name} value={v.name}>
-                                            {v.name}
-                                        </option>
-                                    ))}
-                            </select>
+                            <label className={styles.label}>เสียง TTS</label>
+                            <p className={styles.hint}>
+                                ใช้เสียง Microsoft Premwadee (Edge TTS) คงที่ — generate
+                                จากฝั่ง backend ไม่ขึ้นกับเสียงในเบราว์เซอร์อีกต่อไป
+                            </p>
                         </div>
 
                         <div className={styles.field}>
@@ -614,8 +591,8 @@ export default function SettingsPage() {
                         </div>
 
                         <div className={styles.actionsRow}>
-                            <button className={styles.btn} onClick={testTts}>
-                                ทดสอบ TTS
+                            <button className={styles.btn} onClick={handleTestTts} disabled={testingTts}>
+                                {testingTts ? "กำลังสร้างเสียง..." : "ทดสอบ TTS"}
                             </button>
                             <button className={styles.btn} onClick={testSound}>
                                 ทดสอบเสียง

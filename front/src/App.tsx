@@ -20,9 +20,9 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<DonatePage />} />
+        <Route path="/" element={<DonatePageLanding />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admin" element={
+        <Route path="/admindewpageggez" element={
           <ProtectedRoute>
             <AdminPage />
           </ProtectedRoute>
@@ -39,7 +39,7 @@ function App() {
         <Route path="/top" element={<TopDonatorsWidget />} />
         <Route path="/recent" element={<RecentDonationsWidget />} />
         <Route path="/donate/:id/:token" element={<DonatePage />} />
-        <Route path="/landing" element={<DonatePageLanding />} />
+        <Route path="/donate" element={<DonatePage />} />
       </Routes>
     </BrowserRouter>
   );
