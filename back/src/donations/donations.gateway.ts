@@ -26,8 +26,13 @@ export class DonationsGateway {
     @WebSocketServer()
     server: Server;
 
-    emitDonationPaid(data: Donation) {
-        this.server.emit('donationPaid', sanitizeDonation(data));
+    // ttsAudioUrl เป็น optional เพราะ TTS อาจปิดอยู่ (settings.ttsEnabled === false)
+    // หรือ generate ไม่สำเร็จ — กรณีนั้น overlay จะข้ามการเล่นเสียง TTS ไปเอง
+    emitDonationPaid(data: Donation, ttsAudioUrl: string | null = null) {
+        this.server.emit('donationPaid', {
+            ...sanitizeDonation(data),
+            ttsAudioUrl,
+        });
     }
 
     // แจ้งหน้า Overlay/Widget (OBS browser source) ว่า settings เปลี่ยนแล้ว

@@ -78,6 +78,48 @@ export default function OverlayPage() {
             }, (settings?.overlayDuration ?? 2) * 1000);
         };
 
+        // ลบไฟล์ TTS ทิ้งจาก backend หลังเล่นจบ/error (ไม่ต้องรอ response, ไม่ critical path)
+        // กรณีลบไม่สำเร็จ (network พัง, server ปิด ฯลฯ) จะมี cron fallback ฝั่ง backend เก็บกวาดทีหลัง
+        const deleteTtsFile = (ttsAudioUrl: string) => {
+            const filename = ttsAudioUrl.split("/").pop();
+            if (!filename) return;
+
+            fetch(`${API_URL}/tts/${filename}`, { method: "DELETE" }).catch(() => {
+                // เงียบไว้ — cron fallback จะลบให้เองทีหลัง
+            });
+        };
+
+        // เล่นไฟล์เสียง TTS ที่ backend generate มาให้ (Edge TTS, th-TH-PremwadeeNeural)
+        // ถ้าปิด TTS ไว้ใน settings หรือ donation นี้ไม่มี ttsAudioUrl (generate ไม่สำเร็จ)
+        // ก็ข้ามไปเลย ไม่ต้องรอเสียงอะไรเพิ่ม
+        const playTtsAndFinish = () => {
+            if (!settings?.ttsEnabled || !nextDonation.ttsAudioUrl) {
+                finishDonation();
+                return;
+            }
+
+            const ttsSrc = nextDonation.ttsAudioUrl.startsWith("http")
+                ? nextDonation.ttsAudioUrl
+                : `${API_URL}${nextDonation.ttsAudioUrl}`;
+
+            const ttsAudio = new Audio(ttsSrc);
+
+            ttsAudio.onended = () => {
+                deleteTtsFile(nextDonation.ttsAudioUrl!);
+                finishDonation();
+            };
+
+            ttsAudio.onerror = () => {
+                deleteTtsFile(nextDonation.ttsAudioUrl!);
+                finishDonation();
+            };
+
+            ttsAudio.play().catch(() => {
+                deleteTtsFile(nextDonation.ttsAudioUrl!);
+                finishDonation();
+            });
+        };
+
         const alertSound = settings?.alertSound ?? "donation.mp3";
         // เสียงที่อัปโหลดเองเก็บเป็น URL เต็มของ backend ส่วนเสียงตั้งต้นใช้ path ของ frontend
         const soundSrc = alertSound.startsWith("http")
@@ -88,53 +130,15 @@ export default function OverlayPage() {
         audio.volume = (settings?.alertVolume ?? 100) / 100;
 
         audio.onerror = () => {
-            finishDonation();
+            playTtsAndFinish();
         };
 
         audio.onended = () => {
-            if (!settings?.ttsEnabled) {
-                finishDonation();
-                return;
-            }
-
-            // ถ้าเปิด "อ่านข้อความ" และมีข้อความ → อ่านข้อความตามเดิม
-            // ถ้าปิดไว้ → อ่านแค่ "ชื่อ บริจาค จำนวนเงิน" แทน ไม่อ่านข้อความที่ฝากมา
-            const shouldReadMessage =
-                settings.readMessageEnabled && nextDonation.message?.trim();
-
-            const textToSpeak = shouldReadMessage
-                ? (nextDonation.displayMessage ?? nextDonation.message)!
-                : `${nextDonation.name} บริจาค ${nextDonation.amount} บาท`;
-
-            const speech = new SpeechSynthesisUtterance(textToSpeak);
-            speech.lang = "th-TH";
-
-            const selectedVoice = window.speechSynthesis
-                .getVoices()
-                .find((voice) => voice.name === settings?.ttsVoice);
-
-            if (selectedVoice) {
-                speech.voice = selectedVoice;
-            } else {
-                const thaiVoice = window.speechSynthesis
-                    .getVoices()
-                    .find((voice) => voice.lang === "th-TH");
-
-                if (thaiVoice) {
-                    speech.voice = thaiVoice;
-                }
-            }
-
-            speech.onend = () => {
-                finishDonation();
-            };
-
-            window.speechSynthesis.cancel();
-            window.speechSynthesis.speak(speech);
+            playTtsAndFinish();
         };
 
         audio.play().catch(() => {
-            finishDonation();
+            playTtsAndFinish();
         });
     }, [queue, visible, settings]);
 
@@ -150,12 +154,6 @@ export default function OverlayPage() {
         return () => {
             document.body.style.background = prevBody;
             document.documentElement.style.background = prevHtml;
-        };
-    }, []);
-
-    useEffect(() => {
-        return () => {
-            window.speechSynthesis.cancel();
         };
     }, []);
 

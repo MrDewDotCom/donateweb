@@ -15,10 +15,12 @@ import { CampaignsModule } from './campaigns/campaigns.module';
 import { SettingsModule } from './settings/settings.module';
 import { SlipokModule } from './slipok/slipok.module';
 import { AuthModule } from './auth/auth.module';
+import { TtsModule } from './tts/tts.module';
 
 // หมายเหตุเรื่อง static files:
 // - /uploads (สลิป) ไม่ public — เสิร์ฟผ่าน UploadsServeController (signed URL, 15 นาที) เท่านั้น
 // - /sounds (เสียงแจ้งเตือนที่ admin อัปโหลดเอง) ไม่ sensitive เหมือนสลิป จึง public ได้ตามปกติ
+// - /tts (เสียงที่ generate จาก Edge TTS ต่อ donation) ก็ไม่ sensitive เหมือนกัน เสิร์ฟ public ได้
 
 @Module({
   imports: [
@@ -41,6 +43,10 @@ import { AuthModule } from './auth/auth.module';
         rootPath: join(process.cwd(), 'overlay-images'),
         serveRoot: '/overlay-images',
       },
+      {
+        rootPath: join(process.cwd(), 'tts-audio'),
+        serveRoot: '/tts',
+      },
     ),
     CommonModule,
 
@@ -51,6 +57,7 @@ import { AuthModule } from './auth/auth.module';
     SettingsModule,
     SlipokModule,
     AuthModule,
+    TtsModule,
   ],
   controllers: [AppController],
   providers: [

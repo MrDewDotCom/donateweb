@@ -8,12 +8,14 @@ import { UploadController } from "./upload.controller";
 import { UploadsServeController } from "src/common/controllers/upload-serve.controller";
 import { SlipokModule } from 'src/slipok/slipok.module';
 import { DonationCleanupService } from './donation-cleanup.service';
+import { TtsModule } from 'src/tts/tts.module';
 
 @Module({
   imports: [
     PrismaModule,
     PaymentModule,
     SlipokModule,
+    TtsModule,
   ],
   controllers: [
     DonationsController,

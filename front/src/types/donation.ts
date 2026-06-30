@@ -13,4 +13,7 @@ export interface Donation {
     slipImage?: string | null;
     expiresAt?: string | null;
     transRef?: string | null;
+    // URL ของไฟล์เสียงที่ generate จาก Edge TTS (backend) — มีค่าเฉพาะตอน emit ผ่าน
+    // event "donationPaid" เท่านั้น ไม่ persist ใน DB เป็นไฟล์ static ชั่วคราว
+    ttsAudioUrl?: string | null;
 }

@@ -6,6 +6,8 @@ import { DonationsGateway } from './donations.gateway';
 import { randomUUID } from 'crypto';
 import { sanitizeDonation, sanitizeDonations } from 'src/common/utils/donation.util';
 import { generateSignedUploadUrl } from 'src/common/utils/signed-url.util';
+import { TtsService } from 'src/tts/tts.service';
+import { Donation, Setting } from '@prisma/client';
 
 @Injectable()
 export class DonationsService {
@@ -13,6 +15,7 @@ export class DonationsService {
     private prisma: PrismaService,
     private paymentService: PaymentService,
     private donationsGateway: DonationsGateway,
+    private ttsService: TtsService,
   ) { }
 
   async create(createDonationDto: CreateDonationDto) {
@@ -123,6 +126,29 @@ export class DonationsService {
     return { state: 'active' as const, donation: sanitizeDonation(donation) };
   }
 
+  // สร้างข้อความสำหรับอ่านออกเสียงและ generate ไฟล์เสียงด้วย Edge TTS
+  // ย้าย logic นี้มาจาก frontend (เดิมตัดสินใจตอน play ด้วย Web Speech API)
+  // เพราะตอนนี้ต้อง generate ไฟล์ล่วงหน้าตั้งแต่ฝั่ง backend
+  // คืน null ถ้า TTS ปิดอยู่ใน settings หรือ generate ไม่สำเร็จ
+  private async generateTtsForDonation(
+    donation: Donation,
+    settings: Setting | null,
+  ): Promise<string | null> {
+    if (!settings?.ttsEnabled) {
+      return null;
+    }
+
+    const displayMessage = sanitizeDonation(donation).displayMessage;
+    const shouldReadMessage =
+      settings.readMessageEnabled && donation.message?.trim();
+
+    const textToSpeak = shouldReadMessage
+      ? (displayMessage ?? donation.message)!
+      : `${donation.name} บริจาค ${donation.amount} บาท`;
+
+    return this.ttsService.generate(textToSpeak);
+  }
+
   // เพิ่ม parameter transRef (optional) เพื่อบันทึก transaction reference จาก SlipOK
   // แก้ Race Condition: ใช้ updateMany พร้อม where status != 'paid'
   // เพื่อให้การเปลี่ยนสถานะเป็น atomic ที่ระดับ DB — ถ้ามี request 2 ตัว
@@ -155,7 +181,10 @@ export class DonationsService {
       where: { id },
     });
 
-    this.donationsGateway.emitDonationPaid(donation);
+    const settings = await this.prisma.setting.findFirst();
+    const ttsAudioUrl = await this.generateTtsForDonation(donation, settings);
+
+    this.donationsGateway.emitDonationPaid(donation, ttsAudioUrl);
 
     return sanitizeDonation(donation);
   }
@@ -181,7 +210,10 @@ export class DonationsService {
       },
     });
 
-    this.donationsGateway.emitDonationPaid(donation);
+    const settings = await this.prisma.setting.findFirst();
+    const ttsAudioUrl = await this.generateTtsForDonation(donation, settings);
+
+    this.donationsGateway.emitDonationPaid(donation, ttsAudioUrl);
 
     return sanitizeDonation(donation);
   }
