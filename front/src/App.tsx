@@ -22,7 +22,7 @@ function App() {
       <Routes>
         <Route path="/" element={<DonatePageLanding />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/admindewpageggez" element={
+        <Route path="/admin" element={
           <ProtectedRoute>
             <AdminPage />
           </ProtectedRoute>
