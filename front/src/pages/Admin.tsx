@@ -5,7 +5,7 @@ import { getDonations, markDonationAsPaid, getDailyStats } from "../services/don
 import { getProgress } from "../services/campaign.service";
 import { getMonthlyGoalProgress } from "../services/settings.service";
 import { API_URL } from "../config/api";
-import styles from "./Admin.module.css";
+import styles from "./admin.module.css";
 
 interface DailyStat {
     date: string;

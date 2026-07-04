@@ -11,8 +11,8 @@ const execFileAsync = promisify(execFile);
 const TTS_VOICE = 'th-TH-PremwadeeNeural';
 const TTS_DIR = path.join(process.cwd(), 'tts-audio');
 const SCRIPT_PATH = path.join(process.cwd(), 'scripts', 'generate_tts.py');
-const PYTHON_BIN = process.env.PYTHON_BIN ?? (process.platform === 'win32' ? 'py' : 'python3');
-
+const PYTHON_BIN =
+    process.env.PYTHON_BIN ??(process.platform === 'win32'? 'py': path.join(process.cwd(), '.venv', 'bin', 'python'));
 // ไฟล์เสียงที่เก่ากว่านี้จะถูกลบทิ้งอัตโนมัติ (กันไม่ให้โฟลเดอร์โตเรื่อยๆ)
 const TTS_FILE_MAX_AGE_MS = 10 * 60 * 1000; // 10 นาที
 
