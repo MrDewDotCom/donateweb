@@ -14,12 +14,12 @@ import styles from "./donate.module.css";
 
 type PageState = "form" | "active" | "paid" | "expired" | "not_found" | "loading";
 
-const QUICK_AMOUNTS = [10, 20, 50, 100];
+const QUICK_AMOUNTS = [20, 50, 100, 200];
 
 export default function DonatePage() {
     const [name, setName] = useState("Anonymous");
     const [message, setMessage] = useState("");
-    const [amount, setAmount] = useState(10);
+    const [amount, setAmount] = useState(20);
     const [qrCode, setQrCode] = useState("");
     const [slipFile, setSlipFile] = useState<File | null>(null);
     const [pageState, setPageState] = useState<PageState>("form");
@@ -244,20 +244,6 @@ export default function DonatePage() {
         };
     }, [pageState, expiresAt]);
 
-    // ---------- Sync document title ตาม state ----------
-    useEffect(() => {
-        const titles: Record<PageState, string> = {
-            form: "โดเนท - DonateWeb",
-            loading: "กำลังโหลด... - DonateWeb",
-            active: "สแกนจ่ายเงิน - DonateWeb",
-            paid: "ขอบคุณสำหรับโดเนท - DonateWeb",
-            expired: "ลิงก์หมดอายุ - DonateWeb",
-            not_found: "ไม่พบข้อมูล - DonateWeb",
-        };
-
-        document.title = titles[pageState];
-    }, [pageState]);
-
     const handleSubmit = async () => {
         if (!name.trim()) {
             showError("กรุณากรอกชื่อก่อนทำการบริจาค", "ข้อมูลไม่ครบ");
@@ -418,7 +404,7 @@ export default function DonatePage() {
     const resetForm = () => {
         setName("Anonymous");
         setMessage("");
-        setAmount(10);
+        setAmount(20);
         setTimerSeconds(null);
         setVideoInfo(null);
         setVideoUrl("");
