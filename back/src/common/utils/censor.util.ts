@@ -28,12 +28,12 @@ function buildRegex(word: string): RegExp {
     //
     // normalize() ยุบตัวซ้ำก่อน "หา" อยู่แล้ว แต่ regex ที่ใช้ "แทน" ไม่ได้เผื่อไว้
     // ทำให้ "ควยยยย" ตรวจเจอ แต่แทนที่ได้แค่ "ควย" เหลือ "***ยยย" ค้างบนจอ
-    const chars = [...word].map((c) => `${escapeRegExp(c)}+`);
-
-    return new RegExp(
-        chars.join("[\\s._\\-]*"),
-        "gi",
+    // แต่ละตัวอักษรซ้ำได้ และมีช่องว่าง/จุด/ขีดคั่นได้ เช่น "ค ว ย", "ค.ว.ย", "ควยยยย"
+    const chars = [...word].map(
+        (c) => `(?:${escapeRegExp(c)}[\\s._\\-]*)+`,
     );
+
+    return new RegExp(chars.join(""), "gi");
 }
 
 export function censorMessage(

@@ -14,12 +14,15 @@ import styles from "./donate.module.css";
 
 type PageState = "form" | "active" | "paid" | "expired" | "not_found" | "loading";
 
-const QUICK_AMOUNTS = [20, 50, 100, 200];
+// ปุ่มจำนวนเงินของโดเนททั่วไป (ค่าแรก = ค่าเริ่มต้น)
+const QUICK_AMOUNTS = [10, 20, 50, 100, 200];
+// โดเนทจับเวลา/คลิป: ปุ่มจำนวนเงินอิงจากขั้นต่ำของแบบนั้น (ขั้นต่ำ ×1, ×2, ×5, ×10, ×20)
+const MIN_MULTIPLIERS = [1, 2, 5, 10, 20];
 
 export default function DonatePage() {
     const [name, setName] = useState("Anonymous");
     const [message, setMessage] = useState("");
-    const [amount, setAmount] = useState(20);
+    const [amount, setAmount] = useState(QUICK_AMOUNTS[0]);
     const [qrCode, setQrCode] = useState("");
     const [slipFile, setSlipFile] = useState<File | null>(null);
     const [pageState, setPageState] = useState<PageState>("form");
@@ -75,7 +78,19 @@ export default function DonatePage() {
     // ดึงเรทจับเวลา/เปิดปิด จาก Settings (public)
     useEffect(() => {
         getSettings()
-            .then((res) => setSettings(res.data))
+            .then((res) => {
+                const s: Settings = res.data;
+                setSettings(s);
+                // เปิดมาด้วย ?type=timer / ?type=video → ตั้งจำนวนเงินตามขั้นต่ำของแบบนั้น
+                const t = searchParams.get("type");
+                if ((t === "timer" && s.timerEnabled) || (t === "video" && s.videoEnabled)) {
+                    const min = Math.max(
+                        1,
+                        (t === "timer" ? s.timerMinAmount : s.videoMinAmount) ?? s.minDonationAmount ?? 10,
+                    );
+                    setAmount(min);
+                }
+            })
             .catch((err) => console.error("getSettings failed", err));
     }, []);
 
@@ -109,6 +124,22 @@ export default function DonatePage() {
         setAmount(amountForMinutes(hours * 60 + minutes));
     };
     const timeByTime = effectiveType === "timer" && timerMode === "time";
+
+    // ขั้นต่ำของแต่ละแบบ (ไม่ได้ตั้ง = ใช้ขั้นต่ำทั่วไป, ไม่มีเลย = 10)
+    const minFor = (t: DonationType, s: Settings | null = settings): number => {
+        const general = s?.minDonationAmount ?? null;
+        const specific = t === "timer" ? s?.timerMinAmount : t === "video" ? s?.videoMinAmount : null;
+        return Math.max(1, specific ?? general ?? 10);
+    };
+    const quickAmountsFor = (t: DonationType, s: Settings | null = settings): number[] =>
+        t === "standard" ? QUICK_AMOUNTS : MIN_MULTIPLIERS.map((m) => minFor(t, s) * m);
+    const quickAmounts = quickAmountsFor(effectiveType);
+
+    // เปลี่ยนแบบโดเนท → ตั้งจำนวนเงินเป็นค่าเริ่มต้นของแบบนั้น
+    const selectType = (t: DonationType) => {
+        setDonationType(t);
+        setAmount(quickAmountsFor(t)[0]);
+    };
 
     const typeOptions: [DonationType, string][] = [
         ["standard", "ทั่วไป"],
@@ -404,7 +435,8 @@ export default function DonatePage() {
     const resetForm = () => {
         setName("Anonymous");
         setMessage("");
-        setAmount(20);
+        // ค่าเริ่มต้นตามแบบที่เลือกอยู่ (ทั่วไป = 10, จับเวลา/คลิป = ขั้นต่ำของแบบนั้น)
+        setAmount(quickAmountsFor(effectiveType)[0]);
         setTimerSeconds(null);
         setVideoInfo(null);
         setVideoUrl("");
@@ -590,7 +622,7 @@ export default function DonatePage() {
                         <Segmented
                             options={typeOptions}
                             value={effectiveType}
-                            onChange={setDonationType}
+                            onChange={selectType}
                             ariaLabel="รูปแบบการโดเนท"
                         />
                     </div>
@@ -693,7 +725,7 @@ export default function DonatePage() {
                     ) : (
                         <div key="amount" className={styles.reveal}>
                             <div className={styles.amountRow}>
-                                {QUICK_AMOUNTS.map((v) => (
+                                {quickAmounts.map((v) => (
                                     <button
                                         key={v}
                                         type="button"
