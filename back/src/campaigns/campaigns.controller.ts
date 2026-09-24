@@ -1,9 +1,16 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { CampaignsService } from './campaigns.service';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+
+// แปลง ?limit= เป็นตัวเลข 1-20 (กันคนขอทีละเยอะ ๆ) — ค่าผิดรูปแบบ = undefined
+function parseLimit(raw?: string): number | undefined {
+    const n = Number(raw);
+    if (!raw || !Number.isInteger(n) || n < 1) return undefined;
+    return Math.min(n, 20);
+}
 
 @Controller('campaigns')
 export class CampaignsController {
@@ -24,16 +31,17 @@ export class CampaignsController {
             .getCampaignProgress();
     }
 
+    // ?limit= (1-20) ไม่ส่งมา = ใช้ค่าที่ตั้งไว้ใน campaign/settings ตามเดิม
     @Get("active/top-donators")
-    getTopDonators() {
+    getTopDonators(@Query('limit') limit?: string) {
         return this.campaignsService
-            .getTopDonators();
+            .getTopDonators(parseLimit(limit));
     }
 
     @Get('active/recent')
-    getRecentDonations() {
+    getRecentDonations(@Query('limit') limit?: string) {
         return this.campaignsService
-            .getRecentDonations();
+            .getRecentDonations(parseLimit(limit));
     }
 
     // สร้างแคมเปญ (Goal) ใหม่ — admin เท่านั้น

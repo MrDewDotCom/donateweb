@@ -19,6 +19,40 @@ export function sanitizeDonation(donation: Donation): SafeDonation {
     };
 }
 
+// ข้อมูลโดเนทสำหรับที่สาธารณะ (หน้าเว็บ, widget, socket ที่ใครก็ต่อได้)
+// ส่งเฉพาะที่ต้องแสดง — ไม่มี transRef (เลขอ้างอิงธนาคาร), path สลิป, QR, token
+// และข้อความเป็นแบบเซนเซอร์แล้วเท่านั้น
+export interface PublicDonation {
+    id: number;
+    name: string;
+    amount: number;
+    message: string | null;
+    displayMessage: string | null;
+    paidAt: Date | null;
+    type: string;
+    timerSeconds: number | null;
+    videoId: string | null;
+    videoTitle: string | null;
+    videoSeconds: number | null;
+}
+
+export function toPublicDonation(donation: Donation): PublicDonation {
+    const displayMessage = censorMessage(donation.message);
+    return {
+        id: donation.id,
+        name: donation.name,
+        amount: donation.amount,
+        message: displayMessage,
+        displayMessage,
+        paidAt: donation.paidAt,
+        type: donation.type,
+        timerSeconds: donation.timerSeconds,
+        videoId: donation.videoId,
+        videoTitle: donation.videoTitle,
+        videoSeconds: donation.videoSeconds,
+    };
+}
+
 export function sanitizeDonations(donations: Donation[]): SafeDonation[] {
     return donations.map(sanitizeDonation);
 }

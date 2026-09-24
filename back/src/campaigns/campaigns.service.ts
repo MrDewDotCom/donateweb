@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/src/prisma.service';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateCampaignDto } from './dto/update-campaign.dto';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
-import { sanitizeDonations } from 'src/common/utils/donation.util';
+import { toPublicDonation } from 'src/common/utils/donation.util';
+import { endOfDay, startOfDay } from 'src/common/utils/date.util';
 
 @Injectable()
 export class CampaignsService {
@@ -20,8 +21,18 @@ export class CampaignsService {
 
     // สร้างแคมเปญใหม่ — ถ้าตั้ง isActive ไม่ระบุ จะ default เป็น true
     // และปิดแคมเปญเก่าที่ active อยู่ทั้งหมดก่อน เพื่อให้มี active แคมเปญเดียวเสมอ
+    //
+    // วันที่: หน้าเว็บส่ง "2026-08-31" มาจาก <input type="date">
+    // ต้องตีความเป็นเวลาไทย ไม่ใช่ UTC (ดูเหตุผลใน date.util.ts)
+    // - startDate → 00:00:00 ของวันนั้น
+    // - endDate   → 23:59:59.999 ของวันนั้น เพื่อให้นับรวมทั้งวันสุดท้าย
     async createCampaign(dto: CreateCampaignDto) {
         const isActive = dto.isActive ?? true;
+
+        const startDate = startOfDay(dto.startDate);
+        const endDate = endOfDay(dto.endDate);
+
+        this.assertValidRange(startDate, endDate);
 
         if (isActive) {
             await this.prisma.campaign.updateMany({
@@ -34,13 +45,21 @@ export class CampaignsService {
             data: {
                 title: dto.title,
                 goalAmount: dto.goalAmount,
-                startDate: new Date(dto.startDate),
-                endDate: new Date(dto.endDate),
+                startDate,
+                endDate,
                 isActive,
                 ...(dto.topDonatorLimit != null && { topDonatorLimit: dto.topDonatorLimit }),
                 ...(dto.recentLimit != null && { recentLimit: dto.recentLimit }),
             },
         });
+    }
+
+    private assertValidRange(startDate: Date, endDate: Date) {
+        if (startDate > endDate) {
+            throw new BadRequestException(
+                'วันเริ่มแคมเปญต้องไม่อยู่หลังวันสิ้นสุดแคมเปญ',
+            );
+        }
     }
 
     async getCampaignProgress() {
@@ -94,7 +113,7 @@ export class CampaignsService {
     // - "all"      -> รวมทุกยอดโดเนทตลอดเวลา ไม่ filter วันที่
     // - "campaign" -> อิงช่วง startDate-endDate ของ campaign ที่ active อยู่ (พฤติกรรมเดิม)
     // - "custom"   -> อิงช่วงวันที่ที่ admin กำหนดเองใน Settings (topDonatorFrom/To)
-    async getTopDonators() {
+    async getTopDonators(limitOverride?: number) {
         const settings = await this.prisma.setting.findFirst();
         const mode = settings?.topDonatorMode ?? 'campaign';
 
@@ -107,7 +126,7 @@ export class CampaignsService {
         const activeCampaign = await this.prisma.campaign.findFirst({
             where: { isActive: true },
         });
-        const limit = activeCampaign?.topDonatorLimit ?? settings?.topDonatorsLimit ?? 3;
+        const limit = limitOverride ?? activeCampaign?.topDonatorLimit ?? settings?.topDonatorsLimit ?? 3;
 
         if (mode === 'campaign') {
             if (!activeCampaign) {
@@ -115,9 +134,12 @@ export class CampaignsService {
             }
             where.paidAt = { gte: activeCampaign.startDate, lte: activeCampaign.endDate };
         } else if (mode === 'custom') {
+            // ค่าที่เก็บใน DB คือ instant ของวันที่ admin เลือก
+            // ต้องขยายเป็นทั้งวันตามเวลาไทย ไม่งั้น "ถึงวันที่ X" จะตัดยอดตั้งแต่เที่ยงคืน
+            // ทำให้ยอดของวันสุดท้ายหายไปทั้งวัน
             const range: { gte?: Date; lte?: Date } = {};
-            if (settings?.topDonatorFrom) range.gte = settings.topDonatorFrom;
-            if (settings?.topDonatorTo) range.lte = settings.topDonatorTo;
+            if (settings?.topDonatorFrom) range.gte = startOfDay(settings.topDonatorFrom);
+            if (settings?.topDonatorTo) range.lte = endOfDay(settings.topDonatorTo);
             if (range.gte || range.lte) where.paidAt = range;
         }
         // mode === 'all' -> ไม่ filter วันที่เลย
@@ -136,7 +158,7 @@ export class CampaignsService {
         }));
     }
 
-    async getRecentDonations() {
+    async getRecentDonations(limitOverride?: number) {
         const campaign =
             await this.prisma.campaign.findFirst({
                 where: {
@@ -159,19 +181,47 @@ export class CampaignsService {
             orderBy: {
                 paidAt: 'desc',
             },
-            take: campaign.recentLimit,
+            take: limitOverride ?? campaign.recentLimit,
         });
 
-        return sanitizeDonations(donations);
+        // endpoint สาธารณะ — ส่งเฉพาะข้อมูลที่แสดงได้
+        return donations.map(toPublicDonation);
     }
 
+    // แก้ไขแคมเปญ — แปลงวันที่ด้วยกฎเดียวกับตอนสร้าง และกันไม่ให้มีแคมเปญ active หลายอันพร้อมกัน
     async updateCampaign(
         id: number,
         data: UpdateCampaignDto,
     ) {
+        const { startDate, endDate, ...rest } = data;
+
+        const existing = await this.prisma.campaign.findUnique({ where: { id } });
+
+        if (!existing) {
+            throw new NotFoundException('ไม่พบแคมเปญนี้');
+        }
+
+        const nextStart = startDate ? startOfDay(startDate) : existing.startDate;
+        const nextEnd = endDate ? endOfDay(endDate) : existing.endDate;
+
+        this.assertValidRange(nextStart, nextEnd);
+
+        // ถ้าเปิดแคมเปญนี้ ต้องปิดตัวอื่นก่อน ไม่งั้นจะมี active หลายอัน
+        // แล้ว findFirst ที่ใช้ทุกที่จะหยิบมาแบบไม่แน่นอนว่าอันไหน
+        if (rest.isActive === true) {
+            await this.prisma.campaign.updateMany({
+                where: { isActive: true, id: { not: id } },
+                data: { isActive: false },
+            });
+        }
+
         return this.prisma.campaign.update({
             where: { id },
-            data,
+            data: {
+                ...rest,
+                ...(startDate && { startDate: nextStart }),
+                ...(endDate && { endDate: nextEnd }),
+            },
         });
     }
 }

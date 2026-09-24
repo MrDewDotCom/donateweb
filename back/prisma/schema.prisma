@@ -18,8 +18,34 @@ model Donation {
   qrCode      String?
   accessToken String?   @unique
   slipImage   String?
-  transRef    String?
+  // unique: กันสลิปใบเดิมถูกใช้ยืนยันสองรายการ
+  // เดิมพึ่ง duplicate detection ของ SlipOK อย่างเดียว ซึ่งอยู่นอกการควบคุมเรา
+  transRef    String?   @unique
   expiresAt   DateTime?
+
+  // ประเภทโดเนท: standard | timer (| video ในอนาคต)
+  type         String   @default("standard")
+  // เวลาที่ได้จากโดเนทจับเวลา (วินาที) — คำนวณตอนสร้างตามเรทขณะนั้น
+  // เก็บไว้เลยเพื่อให้ผู้บริจาคได้เวลาตามที่เห็นตอนกด แม้ admin จะเปลี่ยนเรทระหว่างรอจ่าย
+  timerSeconds Int?
+
+  // Video clip donation — คลิป YouTube ที่ผู้บริจาคขอให้เล่นบนไลฟ์
+  videoId        String? // YouTube video id (11 ตัว)
+  videoTitle     String? // ชื่อคลิปจาก YouTube (oEmbed) ไว้แสดงในแอดมิน/overlay
+  videoStart     Int? // เริ่มเล่นที่วินาทีที่เท่าไหร่ของคลิป
+  videoSeconds   Int? // เล่นได้กี่วินาที (คำนวณตามเรทตอนสร้าง)
+  videoStatus    String? // queued | playing | played | skipped
+  videoStartsAt  DateTime? // เวลาที่เริ่มเล่นจริงบนไลฟ์ (หลังหน่วงให้ alert จบก่อน)
+  // ผู้บริจาคเลือก: true = มี alert (เสียง+TTS) ก่อนเล่นคลิป, false = เล่นคลิปอย่างเดียว
+  videoAlert     Boolean?
+
+  @@index([videoStatus, paidAt])
+
+  // ทุก query ในระบบกรองด้วย status แล้วไล่ช่วง paidAt (เป้าหมาย, top donators,
+  // recent, กราฟรายวัน) และ widget ยิงเข้ามาทุก 5 วินาทีตลอดเวลาที่ไลฟ์อยู่
+  // ถ้าไม่มี index พวกนี้จะเป็น sequential scan ทั้งหมด
+  @@index([status, paidAt])
+  @@index([createdAt])
 }
 
 model Campaign {
@@ -49,6 +75,10 @@ model Setting {
   maxDonationAmount Int? // จำนวนโดเนทสูงสุด
   overlayAnimation String  @default("fade") // fade | slide | zoom | bounce
   overlayImage     String? // path/URL รูปที่แสดงตอนโดเนทขึ้น
+  // สีข้อความใน alert (#rrggbb)
+  alertNameColor    String @default("#ffffff")
+  alertAmountColor  String @default("#00ff88")
+  alertMessageColor String @default("#ffffff")
   readMessageEnabled Boolean @default(true) // อ่านข้อความผู้บริจาคหรือแค่ชื่อ+จำนวนเงิน
   monthlyGoalAmount    Int?
   monthlyGoalAutoReset Boolean @default(true) // true = นับเฉพาะเดือนปัจจุบัน, false = นับสะสมตลอดเวลา
@@ -57,4 +87,27 @@ model Setting {
   topDonatorMode String    @default("all") // all | campaign | custom
   topDonatorFrom DateTime? // ใช้เมื่อ topDonatorMode = "custom"
   topDonatorTo   DateTime? // ใช้เมื่อ topDonatorMode = "custom"
+  // Timer donation — เรท: timerRateAmount บาท = timerRateMinutes นาที
+  timerEnabled     Boolean @default(false)
+  timerRateAmount  Int     @default(100)
+  timerRateMinutes Int     @default(60)
+  timerMinAmount   Int? // ขั้นต่ำเฉพาะโดเนทจับเวลา (ว่าง = ใช้ขั้นต่ำทั่วไป)
+  // Video clip donation — เรท: videoRateAmount บาท = videoRateSeconds วินาที
+  videoEnabled     Boolean @default(false)
+  videoRateAmount  Int     @default(10)
+  videoRateSeconds Int     @default(10)
+  videoMinAmount   Int? // ขั้นต่ำเฉพาะโดเนทคลิป (ว่าง = ใช้ขั้นต่ำทั่วไป)
+  videoMaxSeconds  Int     @default(180) // เล่นได้นานสุดต่อคลิป
+  videoStartDelay  Int     @default(6) // รอกี่วินาทีหลัง alert ก่อนเริ่มคลิป
+}
+
+// ตัวจับเวลาที่แสดงบนไลฟ์ มีแถวเดียว (id = 1)
+// ตอนเดิน: เก็บ endsAt (เวลาที่จะหมด) → คำนวณเวลาที่เหลือได้เสมอ แม้ server รีสตาร์ท
+// ตอนหยุด: เก็บ remainingSec ไว้แทน
+model TimerState {
+  id           Int       @id @default(1)
+  isRunning    Boolean   @default(false)
+  endsAt       DateTime?
+  remainingSec Int       @default(0)
+  updatedAt    DateTime  @updatedAt
 }

@@ -1,8 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { PrismaService } from 'prisma/src/prisma.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { DonationsGateway } from 'src/donations/donations.gateway';
 import { TtsService } from 'src/tts/tts.service';
+import { endOfDay, startOfCurrentMonth, startOfDay } from 'src/common/utils/date.util';
 import { randomUUID } from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -75,11 +76,24 @@ export class SettingsService {
             );
         }
 
+        // ช่วงวันที่ของ Top Donators: หน้าเว็บส่ง "YYYY-MM-DD" มา
+        // เก็บลง DB เป็นต้นวัน/ท้ายวันตามเวลาไทย เพื่อให้ query ใช้ได้ตรงๆ
+        // และ "ถึงวันที่ X" หมายถึงรวมทั้งวันของ X จริงๆ
+        const { topDonatorFrom, topDonatorTo, ...rest } = data;
+
         const updated = await this.prisma.setting.update({
             where: {
                 id: settings.id,
             },
-            data,
+            data: {
+                ...rest,
+                ...(topDonatorFrom !== undefined && {
+                    topDonatorFrom: topDonatorFrom ? startOfDay(topDonatorFrom) : null,
+                }),
+                ...(topDonatorTo !== undefined && {
+                    topDonatorTo: topDonatorTo ? endOfDay(topDonatorTo) : null,
+                }),
+            },
         });
 
         this.donationsGateway.emitSettingsUpdated(updated);
@@ -99,9 +113,9 @@ export class SettingsService {
         };
 
         if (settings.monthlyGoalAutoReset) {
-            const now = new Date();
-            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            where.paidAt = { gte: startOfMonth };
+            // ต้องอิงเวลาไทย ไม่ใช่ timezone ของเครื่อง server
+            // ไม่งั้นถ้า deploy ขึ้น server ที่เป็น UTC เป้าหมายรายเดือนจะรีเซ็ตเร็วไป 7 ชม.
+            where.paidAt = { gte: startOfCurrentMonth() };
         }
 
         const result = await this.prisma.donation.aggregate({

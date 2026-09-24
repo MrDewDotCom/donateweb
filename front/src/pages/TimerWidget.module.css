@@ -1,0 +1,88 @@
+.widget {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 28px;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #ffffff;
+}
+
+.card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 14px 30px 16px;
+    border-radius: 18px;
+    background: rgba(10, 12, 20, 0.72);
+    border: 2px solid rgba(96, 165, 250, 0.55);
+    box-shadow: 0 0 24px rgba(59, 130, 246, 0.35), 0 8px 24px rgba(0, 0, 0, 0.45);
+    animation: appear 0.4s ease both;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+}
+
+.label {
+    font-size: 15px;
+    font-weight: 700;
+    color: #bfdbfe;
+    letter-spacing: 0.3px;
+}
+
+.clock {
+    font-family: "MyFont", "Segoe UI", sans-serif;
+    font-size: 64px;
+    line-height: 1;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+.paused {
+    opacity: 0.75;
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.urgent {
+    border-color: rgba(248, 113, 113, 0.8);
+    box-shadow: 0 0 28px rgba(239, 68, 68, 0.45), 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.urgent .clock {
+    color: #fecaca;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+.bump {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: #22c55e;
+    color: #fff;
+    font-size: 20px;
+    font-weight: 800;
+    white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    box-shadow: 0 4px 14px rgba(34, 197, 94, 0.5);
+    animation: bump 2.4s ease-out forwards;
+}
+
+@keyframes appear {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pulse {
+    50% { transform: scale(1.05); }
+}
+
+@keyframes bump {
+    0% { opacity: 0; transform: translate(-50%, 10px) scale(0.8); }
+    15% { opacity: 1; transform: translate(-50%, -8px) scale(1.05); }
+    70% { opacity: 1; transform: translate(-50%, -14px) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -28px) scale(1); }
+}

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { io } from "socket.io-client";
 import { getProgress } from "../services/campaign.service";
 import { getSettings } from "../services/settings.service";
-import { API_URL } from "../config/api";
+import { acquireSocket, releaseSocket } from "../services/socket";
+import { isPreviewMode, usePreviewPayload } from "../utils/preview";
 import styles from "./GoalWidget.module.css";
 
 interface Progress {
@@ -20,6 +20,8 @@ export default function GoalWidget() {
     const [progress, setProgress] = useState<Progress | null>(null);
     const [loaded, setLoaded] = useState(false);
     const [effectEnabled, setEffectEnabled] = useState(true);
+    const [preview] = useState(isPreviewMode);
+    const previewPayload = usePreviewPayload();
 
     useEffect(() => {
         // OBS Browser Source อ่าน background ของ <body> จริง ต้อง override ตรงนี้ด้วย
@@ -36,28 +38,35 @@ export default function GoalWidget() {
     }, []);
 
     useEffect(() => {
+        let cancelled = false;
+
         const load = async () => {
-            // กัน OBS Browser Source แคชข้อมูลเก่า ใส่ timestamp กันแคช
-            const res = await getProgress();
-            setProgress(res.data);
-            setLoaded(true);
+            try {
+                const res = await getProgress();
+                if (!cancelled) setProgress(res.data);
+            } catch (err) {
+                // คงค่าเดิมไว้ ไม่ล้างหลอด goal ทิ้งกลางไลฟ์
+                console.error("getProgress failed", err);
+            } finally {
+                if (!cancelled) setLoaded(true);
+            }
         };
 
         load();
 
-        // ตัวสำรอง เผื่อ socket หลุดหรือพลาด event ไป — ยังอัปเดตเองทุก 5 วิอยู่ดี
-        const interval = setInterval(load, 5000);
+        // ตัวสำรอง เผื่อ socket หลุดหรือพลาด event ไป
+        // ลดจาก 5 วิ เป็น 60 วิ เพราะ socket แจ้งให้อยู่แล้ว และ 5 วิทำให้ชน rate limit
+        const interval = setInterval(load, 60000);
 
         // อัปเดตทันทีที่มีคนโดเนทสำเร็จ ไม่ต้องรอ poll รอบถัดไป
-        const socket = io(API_URL);
-        socket.on("donationPaid", () => {
-            load();
-        });
+        const socket = acquireSocket();
+        socket.on("donationPaid", load);
 
         return () => {
+            cancelled = true;
             clearInterval(interval);
-            socket.off("donationPaid");
-            socket.disconnect();
+            socket.off("donationPaid", load);
+            releaseSocket();
         };
     }, []);
 
@@ -91,20 +100,38 @@ export default function GoalWidget() {
         [],
     );
 
+    // พรีวิว: ใช้ชื่อ/เป้าหมายที่กำลังแก้ไข กับยอดจริงตอนนี้
+    const previewCampaign = preview ? previewPayload?.campaign : undefined;
+    const shown: Progress | null = previewCampaign
+        ? (() => {
+            const currentAmount = progress?.currentAmount ?? 0;
+            const goalAmount = previewCampaign.goalAmount;
+            return {
+                title: previewCampaign.title || progress?.title || "",
+                currentAmount,
+                goalAmount,
+                percentage: goalAmount > 0 ? Math.floor((currentAmount / goalAmount) * 100) : 0,
+            };
+        })()
+        : progress;
+    const showEffect = preview && previewPayload?.settings
+        ? previewPayload.settings.goalEffectEnabled
+        : effectEnabled;
+
     if (!loaded) {
         return <p className={styles.loadingWrap}>Loading...</p>;
     }
 
-    if (!progress) {
+    if (!shown) {
         return <p className={styles.loadingWrap}>ยังไม่มีแคมเปญที่เปิดใช้งาน</p>;
     }
 
-    const pct = Math.min(100, Math.max(0, progress.percentage));
+    const pct = Math.min(100, Math.max(0, shown.percentage));
     const isFull = pct >= 100;
 
     return (
         <div className={styles.widget}>
-            <h1 className={styles.title}>{progress.title}</h1>
+            <h1 className={styles.title}>{shown.title}</h1>
 
             <div className={styles.barTrack}>
                 <div
@@ -116,7 +143,7 @@ export default function GoalWidget() {
                     {pct}%
                 </span>
 
-                {isFull && effectEnabled && (
+                {isFull && showEffect && (
                     <div className={styles.starField}>
                         {stars.map((s) => (
                             <span
@@ -137,8 +164,8 @@ export default function GoalWidget() {
             </div>
 
             <h2 className={styles.amountText}>
-                {progress.currentAmount.toLocaleString()} /{" "}
-                {progress.goalAmount.toLocaleString()} บาท
+                {shown.currentAmount.toLocaleString()} /{" "}
+                {shown.goalAmount.toLocaleString()} บาท
             </h2>
         </div>
     );

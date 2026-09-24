@@ -1,13 +1,13 @@
 .page {
     min-height: 100vh;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
-    font-family: "Segoe UI", system-ui, sans-serif;
-    color: #f1f1f6;
-    padding: 24px;
+    background: var(--bg);
+    font-family: var(--sans);
+    color: var(--text-body);
+    padding: 28px 24px 48px;
 }
 
 .container {
-    max-width: 560px;
+    max-width: 620px;
     margin: 0 auto;
 }
 
@@ -21,11 +21,13 @@
 .title {
     font-size: 22px;
     font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.02em;
     margin: 0;
 }
 
 .backLink {
-    color: #a78bfa;
+    color: var(--accent);
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
@@ -36,19 +38,20 @@
 }
 
 .card {
-    background: #1e1e30;
-    border: 1px solid #2c2c44;
-    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 24px;
     margin-bottom: 16px;
+    box-shadow: var(--shadow-sm);
 }
 
 .sectionTitle {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
-    color: #a78bfa;
+    color: var(--text-subtle);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.06em;
     margin-bottom: 16px;
 }
 
@@ -66,31 +69,37 @@
 
 .label {
     font-size: 14px;
-    color: #c0c0d0;
+    color: var(--text-body);
     flex: 1;
 }
 
 .input,
 .select {
     padding: 9px 12px;
-    border: 1px solid #34344f;
-    border-radius: 8px;
-    background: #14141f;
-    color: #f1f1f6;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-body);
+    font-family: inherit;
     font-size: 14px;
     min-width: 160px;
+}
+
+.input::placeholder {
+    color: var(--text-subtle);
 }
 
 .input:focus,
 .select:focus {
     outline: none;
-    border-color: #8b5cf6;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .checkbox {
     width: 18px;
     height: 18px;
-    accent-color: #8b5cf6;
+    accent-color: var(--accent);
 }
 
 .actionsRow {
@@ -100,65 +109,79 @@
 }
 
 .btn {
-    padding: 11px 20px;
-    border-radius: 9px;
-    border: 1px solid #34344f;
-    background: #14141f;
-    color: #c0c0d0;
+    padding: 10px 18px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-body);
+    font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
 }
 
 .btn:hover {
-    background: #2a2a44;
-    color: #fff;
+    background: var(--surface-2);
+    color: var(--text);
 }
 
 .btn.primary {
-    background: #8b5cf6;
-    border-color: #8b5cf6;
+    background: var(--accent);
+    border-color: var(--accent);
     color: #fff;
 }
 
 .btn.primary:hover {
-    background: #7c3aed;
+    background: var(--accent-hover);
 }
 
 .loadingWrap {
     text-align: center;
-    color: #8a8aa0;
+    color: var(--text-muted);
     padding: 60px 0;
 }
 
 /* เพิ่มสำหรับ category tabs */
 .tabs {
     display: flex;
-    gap: 6px;
+    gap: 4px;
     margin-bottom: 20px;
     flex-wrap: wrap;
+    padding: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
 }
 
 .tab {
-    padding: 9px 16px;
-    border-radius: 8px;
-    border: 1px solid #34344f;
-    background: #1e1e30;
-    color: #a0a0b8;
+    padding: 8px 14px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: inherit;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.tab:hover {
+    background: var(--surface);
+    color: var(--text);
 }
 
 .tab.active {
-    background: #8b5cf6;
-    border-color: #8b5cf6;
-    color: #fff;
+    background: var(--surface);
+    border-color: var(--border);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
 }
 
 .hint {
-    font-size: 12px;
-    color: #6b6b85;
+    font-size: 12.5px;
+    color: var(--text-muted);
     margin-top: -8px;
     margin-bottom: 16px;
 }
@@ -167,18 +190,209 @@
     width: 100%;
     max-height: 140px;
     object-fit: contain;
-    border-radius: 8px;
-    border: 1px solid #2c2c44;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
     margin-top: 8px;
-    background: #14141f;
+    background: var(--surface-2);
 }
 
 .goalProgressBox {
-    background: #14141f;
-    border: 1px solid #2c2c44;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px 16px;
     margin-top: 12px;
     font-size: 13px;
-    color: #c0c0d0;
+    color: var(--text-body);
+}
+
+/* ---------- Timer donation ---------- */
+.rateRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+}
+
+.rateRow .input {
+    flex: 1;
+    min-width: 0;
+}
+
+.timerDisplay {
+    text-align: center;
+    padding: 18px 12px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    background: var(--surface-2, rgba(0, 0, 0, 0.04));
+}
+
+.timerClock {
+    font-size: 48px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.timerStatus {
+    margin-top: 6px;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.actionsRow { flex-wrap: wrap; }
+.field .actionsRow { margin-top: 0; }
+.field .actionsRow .input { flex: 1; min-width: 200px; }
+
+/* ---------- Layout: settings (ซ้าย) + พรีวิว (ขวา) ---------- */
+.containerWide {
+    max-width: 1180px;
+}
+
+.split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 20px;
+    align-items: start;
+}
+
+.formCol {
+    min-width: 0;
+}
+
+.previewCol {
+    position: sticky;
+    top: 20px;
+    min-width: 0;
+}
+
+@media (max-width: 1000px) {
+    .split {
+        grid-template-columns: 1fr;
+    }
+
+    /* บนจอเล็ก เอาพรีวิวขึ้นก่อน จะได้เห็นผลตอนเลื่อนแก้ค่า */
+    .previewCol {
+        position: static;
+        order: -1;
+    }
+}
+
+/* field ที่มีหลายส่วน (label + ช่องกรอก + คำอธิบาย) — เรียงลงล่างแทนวางเคียงกัน */
+.fieldStack {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.fieldStack .hint {
+    margin: 0;
+}
+
+/* คำอธิบายใต้แถวปุ่ม — เดิม margin-top ติดลบทำให้ซ้อนทับปุ่ม */
+.actionsRow + .hint {
+    margin-top: 10px;
+}
+
+/* ---------- Video queue ---------- */
+.videoNow,
+.videoQueue li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.videoQueue {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.videoThumb {
+    width: 120px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: #000;
+}
+
+.videoThumbSm {
+    width: 80px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    background: #000;
+}
+
+.videoInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.videoTitle {
+    font-weight: 600;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.videoStatus {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+}
+
+/* ---------- Color pickers ---------- */
+.colorRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.colorSwatch {
+    width: 42px;
+    height: 38px;
+    padding: 2px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    cursor: pointer;
+}
+
+.colorHex {
+    width: 110px;
+    min-width: 0 !important;
+    font-family: var(--mono);
+    text-transform: lowercase;
+}
+
+/* สถานะเปิด/ปิดรับ (หน้า Timer / Video) */
+.typeStatus {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    font-size: 14px;
+}
+
+.typeStatusOn {
+    background: var(--success-soft);
+    border-color: #bfe5cb;
+}
+
+.typeStatusOn b {
+    color: var(--success);
 }

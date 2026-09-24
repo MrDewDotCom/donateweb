@@ -2,9 +2,36 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link id="favicon" rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <script>
+      // ไอคอนแท็บแบบขยับได้: Chrome/Edge ไม่เล่น GIF ในแท็บ (แสดงแค่เฟรมแรก)
+      // เลยแยก favicon.gif เป็นเฟรม PNG แล้วสลับเองตามจังหวะเดิมของ GIF
+      (function () {
+        // หน้า overlay ใน OBS ไม่มีแท็บให้เห็น — ไม่ต้องเปลืองรอบ
+        if (/^\/(overlay|goal|top|recent|timer|video)(\/|$)/.test(location.pathname)) return;
+        var durations = [1000, 200, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100];
+        var frames = durations.map(function (_, i) {
+          var src = "/favicon/frame-" + (i < 10 ? "0" : "") + i + ".png";
+          new Image().src = src; // โหลดล่วงหน้า กันไอคอนกระพริบ
+          return src;
+        });
+        var i = 0;
+        function tick() {
+          var link = document.getElementById("favicon");
+          if (link) link.href = frames[i];
+          var wait = durations[i];
+          i = (i + 1) % frames.length;
+          setTimeout(tick, wait);
+        }
+        tick();
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>front</title>
+    <title>Dewdabid · Donate</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   </head>
   <body>
     <div id="root"></div>

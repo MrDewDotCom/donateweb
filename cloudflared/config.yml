@@ -1,0 +1,15 @@
+# Cloudflare Tunnel config for Donate web
+tunnel: donate
+credentials-file: C:\Users\Dew\.cloudflared\dc5e7bc1-3942-4d1a-aa18-5f1dc2ba0f55.json
+
+# Use HTTP/2 instead of QUIC (QUIC kept timing out on this PC, likely due to WARP)
+protocol: http2
+# Connect to Cloudflare over IPv4 only (IPv6 kept timing out on this network)
+edge-ip-version: "4"
+
+ingress:
+  - hostname: donate.misterdew.com
+    service: http://localhost:4173
+  - hostname: api.misterdew.com
+    service: http://localhost:3000
+  - service: http_status:404

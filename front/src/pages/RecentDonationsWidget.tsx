@@ -1,10 +1,17 @@
 import { useEffect, useState } from "react";
 import { getRecentDonations } from "../services/campaign.service";
 import type { RecentDonation } from "../types/recentDonation";
+import { acquireSocket, releaseSocket } from "../services/socket";
+import { isPreviewMode, usePreviewPayload } from "../utils/preview";
 import styles from "./RecentDonationsWidget.module.css";
 
 export default function RecentDonationsWidget() {
     const [donations, setDonations] = useState<RecentDonation[]>([]);
+
+    // พรีวิว: ใช้จำนวนรายการที่กำลังแก้ไข (ยังไม่บันทึก)
+    const [preview] = useState(isPreviewMode);
+    const previewPayload = usePreviewPayload();
+    const previewLimit = preview ? previewPayload?.campaign?.recentLimit : undefined;
 
     useEffect(() => {
         const prevBody = document.body.style.background;
@@ -58,16 +65,33 @@ export default function RecentDonationsWidget() {
     }, []);
 
     useEffect(() => {
+        // อัปเดตทันทีเมื่อมีโดเนทผ่าน socket + poll ทุก 60 วิเป็นตัวสำรอง
+        // (เดิม poll ทุก 5 วิ จนชน rate limit และไม่มี error handling)
+        let cancelled = false;
+
         const load = async () => {
-            const res = await getRecentDonations();
-            setDonations(res.data);
+            try {
+                const res = await getRecentDonations(previewLimit && previewLimit > 0 ? previewLimit : undefined);
+                if (!cancelled) setDonations(res.data ?? []);
+            } catch (err) {
+                console.error("getRecentDonations failed", err);
+            }
         };
 
         load();
 
-        const interval = setInterval(load, 5000);
-        return () => clearInterval(interval);
-    }, []);
+        const interval = setInterval(load, 60000);
+
+        const socket = acquireSocket();
+        socket.on("donationPaid", load);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+            socket.off("donationPaid", load);
+            releaseSocket();
+        };
+    }, [previewLimit]);
 
     return (
         <div className={styles.widget}>

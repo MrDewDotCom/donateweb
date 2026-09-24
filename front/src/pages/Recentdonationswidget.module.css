@@ -11,6 +11,8 @@
 }
 
 .title {
+    /* index.css ตั้งสี h1/h2 เป็นสีเข้ม (ธีม admin) — widget ใช้สีขาวจาก .widget */
+    color: inherit;
     font-size: 18px;
     font-weight: 800;
     margin: 0 0 6px;

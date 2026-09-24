@@ -1,0 +1,10 @@
+{
+  "name": "donate-web-launcher",
+  "private": true,
+  "scripts": {
+    "public": "concurrently --kill-others --names API,WEB,TUNNEL --prefix-colors blue,green,magenta \"npm --prefix back run start:prod\" \"npm --prefix front run preview\" \"cloudflared tunnel --config cloudflared/config.yml run\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0"
+  }
+}

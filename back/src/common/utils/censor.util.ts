@@ -24,7 +24,11 @@ function normalize(text: string): string {
 }
 
 function buildRegex(word: string): RegExp {
-    const chars = [...word].map((c) => escapeRegExp(c));
+    // ต่อ + ท้ายทุกตัวอักษร เพื่อให้ครอบคลุมการพิมพ์ซ้ำเพื่อเลี่ยงการตรวจ
+    //
+    // normalize() ยุบตัวซ้ำก่อน "หา" อยู่แล้ว แต่ regex ที่ใช้ "แทน" ไม่ได้เผื่อไว้
+    // ทำให้ "ควยยยย" ตรวจเจอ แต่แทนที่ได้แค่ "ควย" เหลือ "***ยยย" ค้างบนจอ
+    const chars = [...word].map((c) => `${escapeRegExp(c)}+`);
 
     return new RegExp(
         chars.join("[\\s._\\-]*"),

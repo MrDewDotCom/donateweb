@@ -1,7 +1,9 @@
 import {
     BadRequestException,
     Body,
+    ConflictException,
     Controller,
+    Logger,
     NotFoundException,
     Post,
     UploadedFile,
@@ -20,12 +22,23 @@ import { SlipOkVerificationException } from "src/slipok/exceptions/slipok.except
 import { DonationsService } from "./donations.service";
 import { isValidImageBuffer, safeUploadFilename } from "src/common/utils/donation.util";
 
+const UPLOADS_DIR = path.resolve("./uploads");
+
 @Controller("upload")
 export class UploadController {
+    private readonly logger = new Logger(UploadController.name);
+
     constructor(
         private readonly slipokService: SlipokService,
         private readonly donationsService: DonationsService,
-    ) { }
+    ) {
+        // สร้างโฟลเดอร์ตั้งแต่ตอน start เหมือนที่ TtsService/SettingsService ทำ
+        // ถ้ารอไปสร้างตอน request แล้วมันไม่มี จะพังหลัง SlipOK ตรวจสลิปไปแล้ว
+        // ซึ่งเป็นจังหวะที่แย่ที่สุด (เงินเข้าแล้วแต่บันทึกไม่ได้)
+        if (!fs.existsSync(UPLOADS_DIR)) {
+            fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+        }
+    }
 
     // จำกัดเข้มสุดในระบบ: 5 ครั้ง / นาที ต่อ IP
     // เพราะทุกครั้งที่ผ่าน endpoint นี้คือยิง SlipOK API จริง (มี quota จำกัด/เสียเงิน)
@@ -58,36 +71,37 @@ export class UploadController {
             throw new BadRequestException("ไฟล์ไม่ใช่รูปภาพที่รองรับ");
         }
 
-        const result = await this.donationsService.findByToken(
+        const donationState = await this.donationsService.findByToken(
             Number(donationId),
             token,
         );
 
-        if (result.state === "not_found") {
+        if (donationState.state === "not_found") {
             throw new NotFoundException("ไม่พบข้อมูลการบริจาค");
         }
 
-        if (result.state === "paid") {
+        if (donationState.state === "paid") {
             throw new BadRequestException("การบริจาคนี้ชำระเงินแล้ว");
         }
 
-        if (result.state === "expired") {
+        if (donationState.state === "expired") {
             throw new BadRequestException("ลิงก์หมดอายุแล้ว กรุณาสร้างการบริจาคใหม่");
         }
 
-        const donation = result.donation;
+        const donation = donationState.donation;
 
-        // เก็บผลลัพธ์จาก SlipOK ไว้ใช้ transRef ต่อ
+        // ---------- 1) ตรวจสลิปกับ SlipOK ----------
+        // ทุกอย่างก่อนบรรทัดนี้ยังยกเลิกได้ฟรี — หลังจากนี้ยกเลิกไม่ได้แล้ว
         let transRef: string | undefined;
 
         try {
-            const result = await this.slipokService.checkSlip({
+            const slipResult = await this.slipokService.checkSlip({
                 fileBuffer: file.buffer,
                 fileName: file.originalname,
                 amount: donation.amount,
             });
 
-            transRef = result.transRef; // เพิ่ม: เก็บ transRef จาก SlipOK
+            transRef = slipResult.transRef;
         } catch (err) {
             if (err instanceof SlipOkVerificationException) {
                 throw new BadRequestException({
@@ -98,39 +112,70 @@ export class UploadController {
             throw err;
         }
 
-        const filename = safeUploadFilename(file.originalname);
-        const uploadsDir = path.resolve("./uploads");
-        const dest = path.join(uploadsDir, filename);
-
-        if (!dest.startsWith(uploadsDir + path.sep)) {
-            throw new BadRequestException("ชื่อไฟล์ไม่ถูกต้อง");
-        }
-
-        fs.writeFileSync(dest, file.buffer);
-
-        const slipImage = `/uploads/${filename}`;
+        // ---------- 2) บันทึกลง DB ทันที ----------
+        // จุดนี้เงินเข้าบัญชีจริงแล้ว และ SlipOK ได้ mark สลิปใบนี้ว่าถูกใช้ไปแล้ว
+        // ผู้บริจาคจะยิงสลิปใบเดิมซ้ำไม่ได้อีก (จะโดน 1012 DUPLICATE_SLIP)
+        // ดังนั้นต้องบันทึกให้ลงก่อนเป็นอันดับแรก ห้ามมีอะไรมาคั่นก่อนหน้านี้
+        let updated: Awaited<ReturnType<DonationsService["confirmPaymentFromSlip"]>>;
 
         try {
-            const updated = await this.donationsService.confirmPaymentFromSlip(
+            updated = await this.donationsService.confirmPaymentFromSlip(
                 donation.id,
-                slipImage,
-                transRef, // เพิ่ม: ส่ง transRef เข้า service
+                transRef,
+            );
+        } catch (err) {
+            if (err instanceof ConflictException) {
+                // มีคน confirm ไปก่อนแล้ว — ไม่ใช่เงินหาย ปล่อยผ่านตามเดิม
+                throw err;
+            }
+
+            // เคสร้ายแรงที่สุดในระบบ: จ่ายเงินจริงแล้วแต่บันทึกไม่ลง
+            // log ข้อมูลให้ครบพอที่จะตามเก็บด้วยมือได้ เพราะสลิปใบนี้ใช้ซ้ำไม่ได้แล้ว
+            this.logger.error(
+                `PAYMENT VERIFIED BUT NOT RECORDED — donationId=${donation.id} ` +
+                `amount=${donation.amount} transRef=${transRef ?? "unknown"} ` +
+                `name="${donation.name}" — requires manual reconciliation`,
+                err as Error,
             );
 
-            return {
-                success: true,
-                path: slipImage,
-                donation: {
-                    id: updated.id,
-                    status: updated.status,
-                    paidAt: updated.paidAt,
-                },
-            };
-        } catch (err) {
-            // ถ้า confirm ไม่สำเร็จ (เช่น race condition / มีคน confirm ไปก่อนแล้ว)
-            // ลบไฟล์ที่เขียนไปแล้วทิ้งอัตโนมัติ ไม่ให้เป็นไฟล์ขยะค้างใน /uploads/
-            fs.unlink(dest, () => { });
             throw err;
         }
+
+        // ---------- 3) เก็บรูปสลิป (best-effort) ----------
+        // ถึงตรงนี้โดเนทถูกบันทึกว่าจ่ายแล้วเรียบร้อย รูปเป็นแค่หลักฐานประกอบ
+        // ถ้าเขียนไฟล์หรือแนบไม่สำเร็จ ห้าม throw ออกไป เพราะจะทำให้ผู้บริจาค
+        // เห็น error ทั้งที่จ่ายเงินสำเร็จแล้ว และอาจไปกดจ่ายซ้ำ
+        const filename = safeUploadFilename(file.originalname);
+        const dest = path.join(UPLOADS_DIR, filename);
+        let storedPath: string | null = null;
+
+        try {
+            if (!dest.startsWith(UPLOADS_DIR + path.sep)) {
+                throw new Error(`resolved path escaped uploads dir: ${dest}`);
+            }
+
+            await fs.promises.writeFile(dest, file.buffer);
+            await this.donationsService.attachSlipImage(donation.id, `/uploads/${filename}`);
+
+            storedPath = `/uploads/${filename}`;
+        } catch (err) {
+            this.logger.error(
+                `Donation ${donation.id} is paid but its slip image could not be stored`,
+                err as Error,
+            );
+
+            // เก็บกวาดไฟล์ที่อาจเขียนไปแล้วบางส่วน
+            fs.promises.unlink(dest).catch(() => { });
+        }
+
+        return {
+            success: true,
+            path: storedPath,
+            donation: {
+                id: updated.id,
+                status: updated.status,
+                paidAt: updated.paidAt,
+            },
+        };
     }
 }

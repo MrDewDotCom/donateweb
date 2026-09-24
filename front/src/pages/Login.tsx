@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { login } from "../services/frontend-auth.service";
+import { API_URL } from "../config/api";
 import styles from "./Login.module.css";
 
 export default function LoginPage() {
@@ -20,13 +21,37 @@ export default function LoginPage() {
             await login(username, password);
             navigate("/admin");
         } catch (err) {
-            console.error(err);
+            console.error("[login] ล้มเหลว:", err);
+
+            // แยกสาเหตุให้ชัด ไม่งั้นทุกปัญหา (ต่อ server ไม่ติด, CORS, 500,
+            // localStorage ใช้ไม่ได้) จะกลายเป็นข้อความเดียวกันหมดจนหาไม่เจอ
             let message = "เข้าสู่ระบบไม่สำเร็จ";
 
-            if (axios.isAxiosError(err) && err.response?.status === 429) {
-                message = "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่";
-            } else if (axios.isAxiosError(err) && err.response?.status === 401) {
-                message = "Username หรือ Password ไม่ถูกต้อง";
+            if (axios.isAxiosError(err)) {
+                const status = err.response?.status;
+
+                if (status === 429) {
+                    message = "พยายามเข้าสู่ระบบบ่อยเกินไป กรุณารอสักครู่";
+                } else if (status === 401) {
+                    message = "Username หรือ Password ไม่ถูกต้อง";
+                } else if (!err.response) {
+                    // ไม่มี response = request ไปไม่ถึง backend เลย
+                    // (server ไม่ได้รัน / VITE_API_URL ผิด / โดน CORS บล็อค)
+                    message =
+                        `ติดต่อเซิร์ฟเวอร์ไม่ได้ที่ ${API_URL || "(ไม่ได้ตั้ง VITE_API_URL)"} — ` +
+                        `${err.code ?? err.message}`;
+                } else {
+                    const detail =
+                        typeof err.response.data === "string"
+                            ? err.response.data.slice(0, 120)
+                            : JSON.stringify(err.response.data).slice(0, 120);
+
+                    message = `เซิร์ฟเวอร์ตอบกลับ ${status} — ${detail}`;
+                }
+            } else if (err instanceof Error) {
+                // ไม่ใช่ error จาก axios = พังหลังได้ response แล้ว
+                // เคสที่เจอบ่อยคือเบราว์เซอร์บล็อค localStorage (setStoredToken)
+                message = `เกิดข้อผิดพลาดในเบราว์เซอร์: ${err.name} — ${err.message}`;
             }
 
             setError(message);

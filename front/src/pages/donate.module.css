@@ -1,12 +1,15 @@
 .page {
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
-    align-items: center;
+    /* เดิม align-items: center + overflow: hidden → ฟอร์มที่สูงกว่าจอ (มือถือ) ถูกดันขึ้นจนขอบบนหายและเลื่อนไปดูไม่ได้
+       ตอนนี้ชิดบน แล้วให้การ์ดใช้ margin: auto จัดกลางเฉพาะตอนมีที่เหลือ */
+    align-items: flex-start;
     justify-content: center;
     padding: 24px;
     font-family: "Segoe UI", system-ui, sans-serif;
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
     isolation: isolate;
 
     /* Base dark background */
@@ -49,7 +52,7 @@
         /* Blue glow center */
         radial-gradient(ellipse 60% 45% at 50% 38%,
             rgba(56, 100, 255, 0.10) 0%,
-            rgba(100, 60, 255, 0.05) 40%,
+            rgba(59, 130, 246, 0.05) 40%,
             transparent 70%),
         /* Vignette around edges */
         radial-gradient(ellipse 100% 100% at 50% 50%,
@@ -116,19 +119,25 @@
     z-index: 1;
 }
 
+/* การ์ดกระจกใส — สไตล์เดียวกับการ์ดแคมเปญในหน้าแรก */
 .card {
+    position: relative;
+    z-index: 1;
     width: 100%;
     max-width: 420px;
-    background: rgba(18, 18, 18, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 16px;
+    background:
+        linear-gradient(160deg, rgba(59, 130, 246, 0.12), transparent 45%),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
     padding: 32px;
+    margin: auto 0;
     box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.04),
-        0 8px 40px rgba(0, 0, 0, 0.7),
-        0 2px 8px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+        0 0 0 1px rgba(255, 255, 255, 0.02) inset,
+        0 30px 60px -20px rgba(0, 0, 0, 0.6),
+        0 0 60px -12px rgba(59, 130, 246, 0.25);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     font-family: "MyFont", sans-serif;
 }
 
@@ -174,7 +183,7 @@
 .input:focus,
 .textarea:focus {
     outline: none;
-    border-color: #8b5cf6;
+    border-color: #3b82f6;
 }
 
 .textareaWrap {
@@ -217,8 +226,8 @@
 }
 
 .amountChip.active {
-    background: #8b5cf6;
-    border-color: #8b5cf6;
+    background: #3b82f6;
+    border-color: #3b82f6;
     color: #fff;
 }
 
@@ -227,7 +236,7 @@
     padding: 14px;
     border: none;
     border-radius: 10px;
-    background: #8b5cf6;
+    background: #3b82f6;
     color: #fff;
     font-size: 16px;
     font-weight: 700;
@@ -236,7 +245,7 @@
 }
 
 .submitBtn:hover {
-    background: #7c3aed;
+    background: #2f6fe0;
 }
 
 .submitBtn:disabled {
@@ -322,8 +331,8 @@
 }
 
 .fileSelectBtn:hover {
-    border-color: #8b5cf6;
-    background: rgba(139, 92, 246, 0.06);
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.06);
 }
 
 /* Status pages: paid / expired / not_found */
@@ -333,8 +342,10 @@
 }
 
 .statusIcon {
-    font-size: 48px;
+    display: flex;
+    justify-content: center;
     margin-bottom: 12px;
+    color: #93c5fd;
 }
 
 .statusTitle {
@@ -353,15 +364,15 @@
 .secondaryBtn {
     padding: 12px 24px;
     border-radius: 10px;
-    border: 1px solid #8b5cf6;
+    border: 1px solid #3b82f6;
     background: transparent;
-    color: #a78bfa;
+    color: #60a5fa;
     font-weight: 600;
     cursor: pointer;
 }
 
 .secondaryBtn:hover {
-    background: rgba(139, 92, 246, 0.1);
+    background: rgba(59, 130, 246, 0.1);
 }
 
 .loadingWrap {
@@ -398,8 +409,10 @@
 }
 
 .modalIcon {
-    font-size: 40px;
+    display: flex;
+    justify-content: center;
     margin-bottom: 12px;
+    color: #93c5fd;
 }
 
 .modalTitle {
@@ -707,20 +720,183 @@
     }
 }
 
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
+/* ---------- Timer donation ---------- */
+.typeRow {
+    display: flex;
+    gap: 8px;
+}
 
-    .successCard,
-    .confettiPiece,
-    .checkCircle,
-    .checkMark,
-    .ringGlow,
-    .successTitle,
-    .successText,
-    .successBtn {
-        animation: none;
-        opacity: 1;
-        transform: none;
-        stroke-dashoffset: 0;
+.timerPreview {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    background: rgba(59, 130, 246, 0.1);
+    text-align: left;
+}
+
+.timerPreviewMain {
+    font-size: 15px;
+    color: #f1f1f6;
+}
+
+.timerPreviewMain b {
+    color: #93c5fd;
+}
+
+.timerPreviewSub {
+    margin-top: 4px;
+    font-size: 12.5px;
+    color: #c0c0d0;
+}
+
+.timerPaidNote {
+    margin: 8px 0 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: #93c5fd;
+}
+
+/* ---------- Video donation ---------- */
+.fieldError {
+    margin-top: 6px;
+    font-size: 12.5px;
+    color: #fca5a5;
+}
+
+.videoPick {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.videoThumb {
+    width: 128px;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 8px;
+    flex-shrink: 0;
+    background: #111;
+}
+
+.videoPickBody {
+    flex: 1;
+    min-width: 0;
+}
+
+
+/* ---------- Label + สวิตช์เล็ก (โดเนทจับเวลา: ใส่เงิน / ใส่เวลา) ---------- */
+.labelRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.labelRow .label {
+    margin-bottom: 0;
+}
+
+.miniSwitch {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.miniSwitch button {
+    border: 0;
+    border-radius: 999px;
+    padding: 5px 12px;
+    background: transparent;
+    color: #a0a0b8;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.miniSwitch .miniSwitchActive {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.timeInputs {
+    display: flex;
+    gap: 10px;
+}
+
+.timeInputs label {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #c0c0d0;
+    font-size: 14px;
+}
+
+.timeInputs .input {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 480px) {
+    .page {
+        padding: 16px 12px;
+    }
+
+    .card {
+        padding: 24px 18px;
     }
 }
+
+/* ---------- Animation เวลาเปลี่ยนตัวเลือก ---------- */
+/* ส่วนที่โผล่ขึ้นมาใหม่ (เปลี่ยนรูปแบบ/โหมด) ค่อย ๆ จางเข้าพร้อมเลื่อนลงเล็กน้อย */
+.reveal {
+    animation: reveal 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes reveal {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ปุ่มจำนวนเงิน: เปลี่ยนสีนุ่ม ๆ + ยุบนิดตอนกด + เด้งตอนถูกเลือก */
+.amountChip {
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.12s ease;
+}
+
+.amountChip:active {
+    transform: scale(0.95);
+}
+
+.amountChip.active {
+    animation: chipPop 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes chipPop {
+    0% { transform: scale(0.94); }
+    100% { transform: scale(1); }
+}
+
+/* ตัวเลขในกล่องพรีวิว (ได้เวลา / ต้องจ่าย) */
+.timerPreviewMain b {
+    display: inline-block;
+    transition: color 0.2s ease;
+}
+
+/* ไม่ปิด animation ตาม prefers-reduced-motion — เจ้าของเว็บต้องการให้เล่นทุกเครื่อง
+   (Windows ที่ปิด "Animation effects" จะส่งค่านี้มา ทำให้บนคอมไม่เห็น animation เลย)
+   ทั้งหมดเป็นการเคลื่อนไหวสั้น ๆ ไม่เกิน 0.35 วินาที */

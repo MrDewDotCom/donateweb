@@ -3,73 +3,88 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #0f0f1a 0%, #1a1a2e 100%);
-    font-family: "Segoe UI", system-ui, sans-serif;
+    padding: 24px;
+    background: var(--bg);
+    font-family: var(--sans);
 }
 
 .card {
     width: 100%;
     max-width: 360px;
-    background: #1e1e30;
-    border: 1px solid #2c2c44;
-    border-radius: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
     padding: 32px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-lg);
 }
 
 .title {
     font-size: 20px;
     font-weight: 700;
-    color: #f1f1f6;
+    color: var(--text);
+    letter-spacing: -0.02em;
     text-align: center;
     margin: 0 0 24px;
 }
 
 .input {
     width: 100%;
-    padding: 12px 14px;
-    border: 1px solid #34344f;
-    border-radius: 10px;
-    background: #14141f;
-    color: #f1f1f6;
+    padding: 11px 14px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text-body);
+    font-family: inherit;
     font-size: 15px;
     box-sizing: border-box;
     margin-bottom: 14px;
 }
 
 .input::placeholder {
-    color: #6b6b85;
+    color: var(--text-subtle);
 }
 
 .input:focus {
     outline: none;
-    border-color: #8b5cf6;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .error {
-    color: #f87171;
+    color: var(--danger);
+    background: var(--danger-soft);
+    border: 1px solid #f5cfcf;
+    border-radius: var(--radius-sm);
+    padding: 9px 12px;
     font-size: 13px;
+    line-height: 1.45;
     margin: -4px 0 14px;
+    /* ข้อความวินิจฉัยอาจยาวและมี URL — ต้องตัดบรรทัดได้ ไม่ล้นการ์ด */
+    overflow-wrap: anywhere;
 }
 
 .submitBtn {
     width: 100%;
-    padding: 13px;
-    border: none;
-    border-radius: 10px;
-    background: #8b5cf6;
+    padding: 12px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--accent);
     color: #fff;
+    font-family: inherit;
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s;
 }
 
 .submitBtn:hover {
-    background: #7c3aed;
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
 }
 
 .submitBtn:disabled {
-    background: #44415c;
-    color: #8a8aa0;
+    background: var(--surface-3);
+    border-color: var(--border-strong);
+    color: var(--text-subtle);
     cursor: not-allowed;
 }

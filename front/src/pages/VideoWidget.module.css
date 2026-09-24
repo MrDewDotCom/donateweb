@@ -1,0 +1,79 @@
+/* เต็มจอ OBS source — คลิป 16:9 อยู่กลาง + คำบรรยายด้านล่าง */
+.stage {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 3vh 3vw;
+    box-sizing: border-box;
+    font-family: "Segoe UI", system-ui, sans-serif;
+    color: #fff;
+    animation: appear 0.4s ease both;
+}
+
+.frame {
+    position: relative;
+    width: min(100%, calc((100vh - 6vh - 70px) * 16 / 9));
+    aspect-ratio: 16 / 9;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55);
+    border: 3px solid rgba(96, 165, 250, 0.7);
+}
+
+.frame iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.placeholder {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 16px;
+    background: linear-gradient(135deg, #111827, #1e293b);
+}
+
+.caption {
+    max-width: 90%;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 8px 18px;
+    border-radius: 999px;
+    background: rgba(10, 12, 20, 0.78);
+    font-size: 20px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.caption b {
+    color: #93c5fd;
+}
+
+.title {
+    font-size: 15px;
+    opacity: 0.8;
+    max-width: 60ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes appear {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: none; }
+}

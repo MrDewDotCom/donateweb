@@ -17,6 +17,7 @@ import { Throttle } from '@nestjs/throttler';
 import { SettingsService } from './settings.service';
 import { UpdateSettingsDto } from './dto/update-settings.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { toPublicSettings } from './public-settings';
 
 @Controller('settings')
 export class SettingsController {
@@ -25,8 +26,16 @@ export class SettingsController {
             SettingsService,
     ) { }
 
+    // public — ไม่มีเลขพร้อมเพย์
     @Get()
-    getSettings() {
+    async getSettings() {
+        return toPublicSettings(await this.settingsService.getSettings());
+    }
+
+    // admin — ค่าครบทุกช่อง (ใช้ในหน้าตั้งค่า)
+    @UseGuards(JwtAuthGuard)
+    @Get('admin')
+    getAdminSettings() {
         return this.settingsService.getSettings();
     }
 

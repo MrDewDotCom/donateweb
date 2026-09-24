@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { SettingsController } from './settings.controller';
 import { SettingsService } from './settings.service';
-import { PrismaModule } from 'prisma/src/prisma.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 import { DonationsModule } from 'src/donations/donations.module';
 import { TtsModule } from 'src/tts/tts.module';
 

@@ -58,3 +58,7 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# ไฟล์เสียง TTS ที่ generate ชั่วคราว (ลบเองหลังเล่น)
+/tts-audio/*
+!/tts-audio/.gitkeep

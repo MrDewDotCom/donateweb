@@ -2,20 +2,24 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { RealIpThrottlerGuard } from './common/guards/real-ip-throttler.guard';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { validateEnv } from './config/env.validation';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { DonationsModule } from './donations/donations.module';
-import { PrismaModule } from 'prisma/src/prisma.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 import { PaymentModule } from './payment/payment.module';
 import { CampaignsModule } from './campaigns/campaigns.module';
 import { SettingsModule } from './settings/settings.module';
 import { SlipokModule } from './slipok/slipok.module';
 import { AuthModule } from './auth/auth.module';
 import { TtsModule } from './tts/tts.module';
+import { TimerModule } from './timer/timer.module';
+import { VideoModule } from './video/video.module';
 
 // หมายเหตุเรื่อง static files:
 // - /uploads (สลิป) ไม่ public — เสิร์ฟผ่าน UploadsServeController (signed URL, 15 นาที) เท่านั้น
@@ -24,7 +28,9 @@ import { TtsModule } from './tts/tts.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    // validate: ทำให้ตัวแปรที่ขาดไปพังตั้งแต่ตอน start พร้อมบอกชื่อที่ขาด
+    // ไม่ใช่ไปพังเป็น 500 ตอนมีคนใช้งานจริงในอีกหลายวันถัดมา
+    ConfigModule.forRoot({ isGlobal: true, validate: validateEnv }),
     ScheduleModule.forRoot(),
     // ค่า default: ทุก request จำกัดที่ 60 ครั้ง / 60 วินาที ต่อ IP
     // endpoint ที่เสี่ยงสูง (เช่น /upload, POST /donations) จะ override เข้มกว่านี้
@@ -58,12 +64,14 @@ import { TtsModule } from './tts/tts.module';
     SlipokModule,
     AuthModule,
     TtsModule,
+    TimerModule,
+    VideoModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     // ใช้ ThrottlerGuard เป็น guard เริ่มต้นกับทุก route ในระบบ
-    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: RealIpThrottlerGuard },
   ],
 })
 export class AppModule { }

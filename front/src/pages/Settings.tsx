@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { NumberInput, OptionalNumberInput } from "../components/NumberInput";
 import type { Campaign } from "../types/campaign";
 import { getCampaign, updateCampaign, createCampaign } from "../services/campaign.service";
 import type { Settings, MonthlyGoalProgress } from "../types/settings";
 import {
-    getSettings,
+    getAdminSettings,
     updateSettings,
     getMonthlyGoalProgress,
     getCustomSounds,
@@ -15,6 +16,13 @@ import {
     uploadOverlayImage,
 } from "../services/settings.service";
 import { API_URL } from "../config/api";
+import { toDateInputValue } from "../utils/date";
+import { resolveAlertSoundUrl, resolveBackendAsset } from "../utils/assets";
+import TimerControlPanel from "../components/TimerControlPanel";
+import VideoQueuePanel from "../components/VideoQueuePanel";
+import WidgetPreview from "../components/WidgetPreview";
+import type { PreviewPayload } from "../utils/preview";
+import { formatDuration, secondsForAmount, videoSecondsForAmount } from "../utils/duration";
 import styles from "./Settings.module.css";
 
 interface CustomSound {
@@ -27,19 +35,65 @@ interface OverlayImage {
     url: string;
 }
 
-const toDateInput = (iso?: string) => (iso ? iso.slice(0, 10) : "");
+// เดิมเป็น iso.slice(0, 10) ซึ่งอ่านวันที่แบบ UTC ทำให้ช่องวันที่เลื่อนไป 1 วัน
+// ตอนนี้ย้ายไปใช้ตัวแปลงที่รู้จัก timezone ใน utils/date.ts
+const toDateInput = toDateInputValue;
 
-type Tab = "payment" | "overlay" | "sound" | "goal";
+export type SettingsSection = "alert" | "goal" | "top" | "recent" | "timer" | "video" | "payment";
 
-const TABS: { key: Tab; label: string }[] = [
-    { key: "payment", label: "Payment" },
-    { key: "overlay", label: "Overlay" },
-    { key: "sound", label: "Sound & TTS" },
-    { key: "goal", label: "Donation Goal" },
+const SECTION_TITLES: Record<SettingsSection, string> = {
+    alert: "Alert & เสียง",
+    goal: "Goal",
+    top: "Top Donators",
+    recent: "Recent Donations",
+    timer: "Timer (โดเนทจับเวลา)",
+    video: "Video (โดเนทคลิป)",
+    payment: "การชำระเงิน",
+};
+
+// เปิด/ปิดรับโดเนทแต่ละแบบย้ายไปอยู่หน้า "รูปแบบการโดเนท" แล้ว — ที่นี่แสดงสถานะอย่างเดียว
+function TypeStatus({ enabled }: { enabled: boolean }) {
+    return (
+        <div className={`${styles.typeStatus} ${enabled ? styles.typeStatusOn : ""}`}>
+            <span>
+                สถานะ: <b>{enabled ? "เปิดรับอยู่" : "ปิดอยู่"}</b>
+            </span>
+            <Link to="/admin/types" className={styles.backLink}>
+                เปิด/ปิดที่หน้า รูปแบบการโดเนท →
+            </Link>
+        </div>
+    );
+}
+
+// สีข้อความใน alert — ค่าเดิมต้องตรงกับ default ใน schema.prisma
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const ALERT_COLOR_FIELDS: {
+    key: "alertNameColor" | "alertAmountColor" | "alertMessageColor";
+    label: string;
+    default: string;
+}[] = [
+    { key: "alertNameColor", label: "สีชื่อผู้บริจาค", default: "#ffffff" },
+    { key: "alertAmountColor", label: "สีจำนวนเงิน", default: "#00ff88" },
+    { key: "alertMessageColor", label: "สีข้อความที่ส่งมา", default: "#ffffff" },
 ];
 
-export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<Tab>("payment");
+// widget ที่มีพรีวิวสด (payment ไม่มี)
+const SECTION_PREVIEW: Partial<Record<SettingsSection, {
+    path: string;
+    height: number;
+    obsSize: string;
+    replayable?: boolean;
+}>> = {
+    alert: { path: "/overlay", height: 380, obsSize: "1920 × 1080", replayable: true },
+    goal: { path: "/goal", height: 220, obsSize: "600 × 200" },
+    top: { path: "/top", height: 380, obsSize: "400 × 400" },
+    recent: { path: "/recent", height: 380, obsSize: "400 × 400" },
+    timer: { path: "/timer", height: 260, obsSize: "400 × 220" },
+    video: { path: "/video", height: 340, obsSize: "1920 × 1080" },
+};
+
+// หน้าตั้งค่าแต่ละส่วน (เลือกจาก sidebar) — widget มีพรีวิวสดอยู่ด้านขวา
+export default function SettingsPage({ section }: { section: SettingsSection }) {
 
     const [campaign, setCampaign] = useState<Campaign | null>(null);
     const [campaignLoaded, setCampaignLoaded] = useState(false);
@@ -71,7 +125,7 @@ export default function SettingsPage() {
     }, []);
 
     const loadSettings = async () => {
-        const res = await getSettings();
+        const res = await getAdminSettings();
         setSettings(res.data);
     };
 
@@ -128,7 +182,8 @@ export default function SettingsPage() {
             if (settings) {
                 setSettings({
                     ...settings,
-                    overlayImage: `${API_URL}${res.data.url}`,
+                    // เก็บเป็น path อย่างเดียว ไม่ผูกกับ host (ดูเหตุผลใน utils/assets.ts)
+                    overlayImage: res.data.url,
                 });
             }
 
@@ -165,11 +220,11 @@ export default function SettingsPage() {
             const res = await uploadSound(file);
             await loadCustomSounds();
 
-            // เลือกเสียงที่อัปโหลดใหม่ให้เป็นค่าที่ใช้ทันที (เก็บเป็น URL เต็มของ backend)
+            // เลือกเสียงที่อัปโหลดใหม่ให้เป็นค่าที่ใช้ทันที (เก็บเป็น path อย่างเดียว)
             if (settings) {
                 setSettings({
                     ...settings,
-                    alertSound: `${API_URL}${res.data.url}`,
+                    alertSound: res.data.url,
                 });
             }
 
@@ -286,15 +341,31 @@ export default function SettingsPage() {
     };
 
     const testSound = () => {
-        const alertSound = settings?.alertSound ?? "donation.mp3";
-        // เสียงที่อัปโหลดเองเก็บเป็น URL เต็มของ backend (http...) ส่วนเสียงตั้งต้นใช้ path ของ frontend
-        const src = alertSound.startsWith("http")
-            ? alertSound
-            : `/sounds/${alertSound}`;
-
-        const audio = new Audio(src);
+        const audio = new Audio(resolveAlertSoundUrl(settings?.alertSound));
         audio.volume = (settings?.alertVolume ?? 100) / 100;
         audio.play();
+    };
+
+    // ค่าที่กำลังแก้ไข (ยังไม่บันทึก) ส่งให้พรีวิว
+    const previewPayload = useMemo<PreviewPayload>(
+        () => ({
+            settings: settings ?? undefined,
+            campaign: {
+                title: campaignForm.title,
+                goalAmount: campaignForm.goalAmount,
+                topDonatorLimit: campaignForm.topDonatorLimit,
+                recentLimit: campaignForm.recentLimit,
+            },
+        }),
+        [settings, campaignForm],
+    );
+    const previewConfig = SECTION_PREVIEW[section];
+
+    // พรีวิวแบบมีเสียง: สร้าง TTS ตัวอย่างถ้าเปิด TTS (ตามค่าที่กำลังแก้อยู่)
+    const previewTtsUrl = async () => {
+        if (!settings?.ttsEnabled) return null;
+        const res = await testTts();
+        return res.data.url;
     };
 
     if (!settings || !campaignLoaded) {
@@ -307,28 +378,15 @@ export default function SettingsPage() {
 
     return (
         <div className={styles.page}>
-            <div className={styles.container}>
+            <div className={`${styles.container} ${previewConfig ? styles.containerWide : ""}`}>
                 <div className={styles.header}>
-                    <h1 className={styles.title}>Settings</h1>
-                    <Link to="/admin" className={styles.backLink}>
-                        ← กลับ Dashboard
-                    </Link>
+                    <h1 className={styles.title}>{SECTION_TITLES[section]}</h1>
                 </div>
 
-                <div className={styles.tabs}>
-                    {TABS.map((t) => (
-                        <button
-                            key={t.key}
-                            className={`${styles.tab} ${activeTab === t.key ? styles.active : ""}`}
-                            onClick={() => setActiveTab(t.key)}
-                        >
-                            {t.label}
-                        </button>
-                    ))}
-                </div>
-
+                <div className={previewConfig ? styles.split : undefined}>
+                <div className={styles.formCol}>
                 {/* ---------- Payment ---------- */}
-                {activeTab === "payment" && (
+                {section === "payment" && (
                     <div className={styles.card}>
                         <div className={styles.sectionTitle}>Payment</div>
 
@@ -346,18 +404,15 @@ export default function SettingsPage() {
 
                         <div className={styles.field}>
                             <label className={styles.label}>จำนวนโดเนทขั้นต่ำ (บาท)</label>
-                            <input
+                            <OptionalNumberInput
                                 className={styles.input}
-                                type="number"
                                 min={0}
-                                value={settings.minDonationAmount ?? ""}
+                                value={settings.minDonationAmount}
                                 placeholder="ไม่จำกัด"
-                                onChange={(e) =>
+                                onChange={(v) =>
                                     setSettings({
                                         ...settings,
-                                        minDonationAmount: e.target.value
-                                            ? Number(e.target.value)
-                                            : null,
+                                        minDonationAmount: v,
                                     })
                                 }
                             />
@@ -365,18 +420,15 @@ export default function SettingsPage() {
 
                         <div className={styles.field}>
                             <label className={styles.label}>จำนวนโดเนทสูงสุด (บาท)</label>
-                            <input
+                            <OptionalNumberInput
                                 className={styles.input}
-                                type="number"
                                 min={1}
-                                value={settings.maxDonationAmount ?? ""}
+                                value={settings.maxDonationAmount}
                                 placeholder="ไม่จำกัด"
-                                onChange={(e) =>
+                                onChange={(v) =>
                                     setSettings({
                                         ...settings,
-                                        maxDonationAmount: e.target.value
-                                            ? Number(e.target.value)
-                                            : null,
+                                        maxDonationAmount: v,
                                     })
                                 }
                             />
@@ -396,21 +448,198 @@ export default function SettingsPage() {
                     </div>
                 )}
 
+                {/* ---------- Timer donation ---------- */}
+                {section === "timer" && (
+                    <>
+                        <div className={styles.card}>
+                            <div className={styles.sectionTitle}>ตั้งค่าโดเนทจับเวลา</div>
+
+                            <TypeStatus enabled={settings.timerEnabled} />
+
+                            <div className={`${styles.field} ${styles.fieldStack}`}>
+                                <label className={styles.label}>เรท (กี่บาท = กี่นาที)</label>
+                                <div className={styles.rateRow}>
+                                    <span>฿</span>
+                                    <NumberInput
+                                        className={styles.input}
+                                        min={1}
+                                        value={settings.timerRateAmount}
+                                        onChange={(v) =>
+                                            setSettings({ ...settings, timerRateAmount: v })
+                                        }
+                                    />
+                                    <span>=</span>
+                                    <NumberInput
+                                        className={styles.input}
+                                        min={1}
+                                        value={settings.timerRateMinutes}
+                                        onChange={(v) =>
+                                            setSettings({ ...settings, timerRateMinutes: v })
+                                        }
+                                    />
+                                    <span>นาที</span>
+                                </div>
+                                <p className={styles.hint}>
+                                    ตัวอย่าง: โดเนท ฿100 ได้{" "}
+                                    <b>
+                                        {formatDuration(
+                                            secondsForAmount(100, settings.timerRateAmount, settings.timerRateMinutes),
+                                        )}
+                                    </b>
+                                    {" · "}฿50 ได้{" "}
+                                    <b>
+                                        {formatDuration(
+                                            secondsForAmount(50, settings.timerRateAmount, settings.timerRateMinutes),
+                                        )}
+                                    </b>
+                                </p>
+                            </div>
+
+                            <div className={`${styles.field} ${styles.fieldStack}`}>
+                                <label className={styles.label}>ขั้นต่ำเฉพาะโดเนทจับเวลา (บาท)</label>
+                                <OptionalNumberInput
+                                    className={styles.input}
+                                    min={1}
+                                    value={settings.timerMinAmount}
+                                    placeholder="ใช้ขั้นต่ำทั่วไป"
+                                    onChange={(v) =>
+                                        setSettings({
+                                            ...settings,
+                                            timerMinAmount: v,
+                                        })
+                                    }
+                                />
+                                <p className={styles.hint}>
+                                    เปลี่ยนเรทแล้ว รายการที่กำลังรอจ่ายเงินยังได้เวลาตามเรทเดิมตอนที่กดสร้าง
+                                </p>
+                            </div>
+
+                            <button
+                                className={`${styles.btn} ${styles.primary}`}
+                                onClick={handleSave}
+                                disabled={saving || settings.timerRateAmount < 1 || settings.timerRateMinutes < 1}
+                                style={{ width: "100%" }}
+                            >
+                                {saving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+                            </button>
+                        </div>
+
+                        <TimerControlPanel />
+                    </>
+                )}
+
+                {/* ---------- Video clip donation ---------- */}
+                {section === "video" && (
+                    <>
+                        <div className={styles.card}>
+                            <div className={styles.sectionTitle}>ตั้งค่าโดเนทคลิป</div>
+
+                            <TypeStatus enabled={settings.videoEnabled} />
+
+                            <div className={`${styles.field} ${styles.fieldStack}`}>
+                                <label className={styles.label}>เรท (กี่บาท = เล่นกี่วินาที)</label>
+                                <div className={styles.rateRow}>
+                                    <span>฿</span>
+                                    <NumberInput
+                                        className={styles.input}
+                                        min={1}
+                                        value={settings.videoRateAmount}
+                                        onChange={(v) => setSettings({ ...settings, videoRateAmount: v })}
+                                    />
+                                    <span>=</span>
+                                    <NumberInput
+                                        className={styles.input}
+                                        min={1}
+                                        value={settings.videoRateSeconds}
+                                        onChange={(v) => setSettings({ ...settings, videoRateSeconds: v })}
+                                    />
+                                    <span>วินาที</span>
+                                </div>
+                                <p className={styles.hint}>
+                                    ตัวอย่าง: ฿50 เล่นได้{" "}
+                                    <b>
+                                        {formatDuration(
+                                            videoSecondsForAmount(50, settings.videoRateAmount, settings.videoRateSeconds, settings.videoMaxSeconds),
+                                        )}
+                                    </b>
+                                    {" · "}฿100 เล่นได้{" "}
+                                    <b>
+                                        {formatDuration(
+                                            videoSecondsForAmount(100, settings.videoRateAmount, settings.videoRateSeconds, settings.videoMaxSeconds),
+                                        )}
+                                    </b>
+                                </p>
+                            </div>
+
+                            <div className={styles.field}>
+                                <label className={styles.label}>เล่นนานสุดต่อคลิป (วินาที)</label>
+                                <NumberInput
+                                    className={styles.input}
+                                    min={5}
+                                    value={settings.videoMaxSeconds}
+                                    onChange={(v) => setSettings({ ...settings, videoMaxSeconds: v })}
+                                />
+                            </div>
+
+                            <div className={styles.field}>
+                                <label className={styles.label}>ขั้นต่ำเฉพาะโดเนทคลิป (บาท)</label>
+                                <OptionalNumberInput
+                                    className={styles.input}
+                                    min={1}
+                                    value={settings.videoMinAmount}
+                                    placeholder="ใช้ขั้นต่ำทั่วไป"
+                                    onChange={(v) =>
+                                        setSettings({ ...settings, videoMinAmount: v })
+                                    }
+                                />
+                            </div>
+
+                            <div className={`${styles.field} ${styles.fieldStack}`}>
+                                <label className={styles.label}>รอหลัง alert ก่อนเริ่มคลิป (วินาที)</label>
+                                <NumberInput
+                                    className={styles.input}
+                                    min={0}
+                                    value={settings.videoStartDelay}
+                                    onChange={(v) => setSettings({ ...settings, videoStartDelay: v })}
+                                />
+                                <p className={styles.hint}>
+                                    กันเสียงคลิปทับกับเสียง alert/TTS — ถ้า TTS อ่านข้อความยาว ให้เพิ่มค่านี้
+                                </p>
+                            </div>
+
+                            <button
+                                className={`${styles.btn} ${styles.primary}`}
+                                onClick={handleSave}
+                                disabled={
+                                    saving ||
+                                    settings.videoRateAmount < 1 ||
+                                    settings.videoRateSeconds < 1 ||
+                                    settings.videoMaxSeconds < 5
+                                }
+                                style={{ width: "100%" }}
+                            >
+                                {saving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+                            </button>
+                        </div>
+
+                        <VideoQueuePanel />
+                    </>
+                )}
+
                 {/* ---------- Overlay ---------- */}
-                {activeTab === "overlay" && (
+                {section === "alert" && (
                     <div className={styles.card}>
                         <div className={styles.sectionTitle}>Overlay</div>
 
                         <div className={styles.field}>
                             <label className={styles.label}>ระยะเวลาแสดง Alert (วินาที)</label>
-                            <input
+                            <NumberInput
                                 className={styles.input}
-                                type="number"
                                 value={settings.overlayDuration}
-                                onChange={(e) =>
+                                onChange={(v) =>
                                     setSettings({
                                         ...settings,
-                                        overlayDuration: Number(e.target.value),
+                                        overlayDuration: v,
                                     })
                                 }
                             />
@@ -451,7 +680,7 @@ export default function SettingsPage() {
                                 {overlayImages.map((img) => (
                                     <option
                                         key={img.filename}
-                                        value={`${API_URL}${img.url}`}
+                                        value={img.url}
                                     >
                                         {img.filename}
                                     </option>
@@ -475,7 +704,7 @@ export default function SettingsPage() {
 
                         {settings.overlayImage && (
                             <img
-                                src={settings.overlayImage}
+                                src={resolveBackendAsset(settings.overlayImage)}
                                 alt="Overlay preview"
                                 className={styles.imagePreview}
                             />
@@ -492,8 +721,55 @@ export default function SettingsPage() {
                     </div>
                 )}
 
+                {/* ---------- Alert text colors ---------- */}
+                {section === "alert" && (
+                    <div className={styles.card}>
+                        <div className={styles.sectionTitle}>สีข้อความ</div>
+
+                        {ALERT_COLOR_FIELDS.map((f) => (
+                            <div key={f.key} className={styles.field}>
+                                <label className={styles.label} htmlFor={f.key}>{f.label}</label>
+                                <div className={styles.colorRow}>
+                                    <input
+                                        id={f.key}
+                                        type="color"
+                                        className={styles.colorSwatch}
+                                        value={settings[f.key]}
+                                        onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value })}
+                                    />
+                                    <input
+                                        className={`${styles.input} ${styles.colorHex}`}
+                                        value={settings[f.key]}
+                                        maxLength={7}
+                                        aria-label={`${f.label} (รหัสสี)`}
+                                        onChange={(e) => setSettings({ ...settings, [f.key]: e.target.value })}
+                                    />
+                                    <button
+                                        type="button"
+                                        className={styles.btn}
+                                        disabled={settings[f.key].toLowerCase() === f.default}
+                                        onClick={() => setSettings({ ...settings, [f.key]: f.default })}
+                                    >
+                                        ค่าเดิม
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                        <p className={styles.hint}>ดูผลได้ทันทีในพรีวิวด้านขวา — บนไลฟ์จะเปลี่ยนหลังกดบันทึก</p>
+
+                        <button
+                            className={`${styles.btn} ${styles.primary}`}
+                            onClick={handleSave}
+                            disabled={saving || ALERT_COLOR_FIELDS.some((f) => !HEX_COLOR.test(settings[f.key]))}
+                            style={{ width: "100%" }}
+                        >
+                            {saving ? "กำลังบันทึก..." : "บันทึกการตั้งค่า"}
+                        </button>
+                    </div>
+                )}
+
                 {/* ---------- Sound & TTS ---------- */}
-                {activeTab === "sound" && (
+                {section === "alert" && (
                     <div className={styles.card}>
                         <div className={styles.sectionTitle}>Sound & TTS</div>
 
@@ -509,7 +785,7 @@ export default function SettingsPage() {
                             />
                         </div>
 
-                        <div className={styles.field}>
+                        <div className={`${styles.field} ${styles.fieldStack}`}>
                             <label className={styles.label}>เสียง TTS</label>
                             <p className={styles.hint}>
                                 ใช้เสียง Microsoft Premwadee (Edge TTS) คงที่ — generate
@@ -550,7 +826,7 @@ export default function SettingsPage() {
                                 {customSounds.length > 0 && (
                                     <optgroup label="เสียงที่อัปโหลดเอง">
                                         {customSounds.map((s) => (
-                                            <option key={s.filename} value={`${API_URL}${s.url}`}>
+                                            <option key={s.filename} value={s.url}>
                                                 {s.filename}
                                             </option>
                                         ))}
@@ -575,16 +851,15 @@ export default function SettingsPage() {
 
                         <div className={styles.field}>
                             <label className={styles.label}>Volume</label>
-                            <input
+                            <NumberInput
                                 className={styles.input}
-                                type="number"
                                 min={0}
                                 max={100}
                                 value={settings.alertVolume}
-                                onChange={(e) =>
+                                onChange={(v) =>
                                     setSettings({
                                         ...settings,
-                                        alertVolume: Number(e.target.value),
+                                        alertVolume: v,
                                     })
                                 }
                             />
@@ -602,11 +877,11 @@ export default function SettingsPage() {
                                 onClick={handleTestOverlay}
                                 disabled={testingOverlay}
                             >
-                                {testingOverlay ? "กำลังส่ง..." : "ทดสอบ Overlay"}
+                                {testingOverlay ? "กำลังส่ง..." : "ส่งทดสอบขึ้นไลฟ์จริง"}
                             </button>
                         </div>
                         <p className={styles.hint}>
-                            "ทดสอบ Overlay" จะส่งโดเนทตัวอย่างไปแสดงที่หน้า /overlay จริง
+                            "ส่งทดสอบขึ้นไลฟ์จริง" จะส่งโดเนทตัวอย่างไปแสดงที่หน้า /overlay จริง
                             (ไม่บันทึกลงฐานข้อมูล)
                         </p>
 
@@ -622,25 +897,22 @@ export default function SettingsPage() {
                 )}
 
                 {/* ---------- Donation Goal ---------- */}
-                {activeTab === "goal" && (
+                {section === "goal" && (
                     <>
                         <div className={styles.card}>
                             <div className={styles.sectionTitle}>เป้าหมายเดือนนี้</div>
 
                             <div className={styles.field}>
                                 <label className={styles.label}>เป้าหมายรายเดือน (บาท)</label>
-                                <input
+                                <OptionalNumberInput
                                     className={styles.input}
-                                    type="number"
                                     min={1}
                                     placeholder="ไม่ได้ตั้งไว้"
-                                    value={settings.monthlyGoalAmount ?? ""}
-                                    onChange={(e) =>
+                                    value={settings.monthlyGoalAmount}
+                                    onChange={(v) =>
                                         setSettings({
                                             ...settings,
-                                            monthlyGoalAmount: e.target.value
-                                                ? Number(e.target.value)
-                                                : null,
+                                            monthlyGoalAmount: v,
                                         })
                                     }
                                 />
@@ -719,15 +991,14 @@ export default function SettingsPage() {
 
                             <div className={styles.field}>
                                 <label className={styles.label}>เป้าหมาย (บาท)</label>
-                                <input
+                                <NumberInput
                                     className={styles.input}
-                                    type="number"
                                     min={1}
                                     value={campaignForm.goalAmount}
-                                    onChange={(e) =>
+                                    onChange={(v) =>
                                         setCampaignForm({
                                             ...campaignForm,
-                                            goalAmount: Number(e.target.value),
+                                            goalAmount: v,
                                         })
                                     }
                                 />
@@ -760,38 +1031,6 @@ export default function SettingsPage() {
                                 />
                             </div>
 
-                            <div className={styles.field}>
-                                <label className={styles.label}>จำนวนคนใน Top Donators</label>
-                                <input
-                                    className={styles.input}
-                                    type="number"
-                                    min={1}
-                                    value={campaignForm.topDonatorLimit}
-                                    onChange={(e) =>
-                                        setCampaignForm({
-                                            ...campaignForm,
-                                            topDonatorLimit: Number(e.target.value),
-                                        })
-                                    }
-                                />
-                            </div>
-
-                            <div className={styles.field}>
-                                <label className={styles.label}>จำนวนรายการใน Recent Donations</label>
-                                <input
-                                    className={styles.input}
-                                    type="number"
-                                    min={1}
-                                    value={campaignForm.recentLimit}
-                                    onChange={(e) =>
-                                        setCampaignForm({
-                                            ...campaignForm,
-                                            recentLimit: Number(e.target.value),
-                                        })
-                                    }
-                                />
-                            </div>
-
                             <button
                                 className={`${styles.btn} ${styles.primary}`}
                                 onClick={handleSaveCampaign}
@@ -806,8 +1045,43 @@ export default function SettingsPage() {
                             </button>
                         </div>
 
+                    </>
+                )}
+
+                {section === "top" && (
+                    <>
                         <div className={styles.card}>
-                            <div className={styles.sectionTitle}>Top Donators</div>
+                            <div className={styles.sectionTitle}>จำนวนที่แสดง</div>
+                            <div className={styles.field}>
+                                <label className={styles.label}>จำนวนคนใน Top Donators</label>
+                                <NumberInput
+                                    className={styles.input}
+                                    min={1}
+                                    max={20}
+                                    value={campaignForm.topDonatorLimit}
+                                    onChange={(v) =>
+                                        setCampaignForm({
+                                            ...campaignForm,
+                                            topDonatorLimit: v,
+                                        })
+                                    }
+                                />
+                            </div>
+                            {!campaign && (
+                                <p className={styles.hint}>ต้องสร้างแคมเปญในหน้า Goal ก่อน ถึงจะบันทึกค่านี้ได้</p>
+                            )}
+                            <button
+                                className={`${styles.btn} ${styles.primary}`}
+                                onClick={handleSaveCampaign}
+                                disabled={savingCampaign || !campaign}
+                                style={{ width: "100%", marginTop: 8 }}
+                            >
+                                {savingCampaign ? "กำลังบันทึก..." : "บันทึก"}
+                            </button>
+                        </div>
+
+                        <div className={styles.card}>
+                            <div className={styles.sectionTitle}>ช่วงเวลาที่ใช้จัดอันดับ</div>
 
                             <div className={styles.field}>
                                 <label className={styles.label}>ช่วงเวลาที่ใช้คำนวณ</label>
@@ -834,13 +1108,13 @@ export default function SettingsPage() {
                                         <input
                                             className={styles.input}
                                             type="date"
-                                            value={toDateInput(settings.topDonatorFrom ?? undefined)}
+                                            value={toDateInput(settings.topDonatorFrom)}
                                             onChange={(e) =>
                                                 setSettings({
                                                     ...settings,
-                                                    topDonatorFrom: e.target.value
-                                                        ? new Date(e.target.value).toISOString()
-                                                        : null,
+                                                    // ส่งเป็น "YYYY-MM-DD" ตรงๆ ให้ backend ขยายเป็นต้นวันตามเวลาไทยเอง
+                                                    // เดิมแปลงเป็น ISO ที่ฝั่ง client ซึ่งได้เที่ยงคืน UTC = 7 โมงเช้าไทย
+                                                    topDonatorFrom: e.target.value || null,
                                                 })
                                             }
                                         />
@@ -850,13 +1124,13 @@ export default function SettingsPage() {
                                         <input
                                             className={styles.input}
                                             type="date"
-                                            value={toDateInput(settings.topDonatorTo ?? undefined)}
+                                            value={toDateInput(settings.topDonatorTo)}
                                             onChange={(e) =>
                                                 setSettings({
                                                     ...settings,
-                                                    topDonatorTo: e.target.value
-                                                        ? new Date(e.target.value).toISOString()
-                                                        : null,
+                                                    // backend จะขยายเป็น 23:59:59.999 ของวันนี้ตามเวลาไทย
+                                                    // เพื่อให้ "ถึงวันที่ X" นับรวมยอดทั้งวันของ X ด้วย
+                                                    topDonatorTo: e.target.value || null,
                                                 })
                                             }
                                         />
@@ -881,6 +1155,54 @@ export default function SettingsPage() {
                         </div>
                     </>
                 )}
+
+                {section === "recent" && (
+                    <div className={styles.card}>
+                        <div className={styles.sectionTitle}>จำนวนที่แสดง</div>
+                        <div className={styles.field}>
+                            <label className={styles.label}>จำนวนรายการใน Recent Donations</label>
+                            <NumberInput
+                                className={styles.input}
+                                min={1}
+                                max={20}
+                                value={campaignForm.recentLimit}
+                                onChange={(v) =>
+                                    setCampaignForm({
+                                        ...campaignForm,
+                                        recentLimit: v,
+                                    })
+                                }
+                            />
+                        </div>
+                        <p className={styles.hint}>แสดงโดเนทที่จ่ายแล้วในช่วงแคมเปญที่เปิดอยู่</p>
+                        {!campaign && (
+                            <p className={styles.hint}>ต้องสร้างแคมเปญในหน้า Goal ก่อน ถึงจะบันทึกค่านี้ได้</p>
+                        )}
+                        <button
+                            className={`${styles.btn} ${styles.primary}`}
+                            onClick={handleSaveCampaign}
+                            disabled={savingCampaign || !campaign}
+                            style={{ width: "100%", marginTop: 8 }}
+                        >
+                            {savingCampaign ? "กำลังบันทึก..." : "บันทึก"}
+                        </button>
+                    </div>
+                )}
+                </div>
+
+                {previewConfig && (
+                    <div className={styles.previewCol}>
+                        <WidgetPreview
+                            path={previewConfig.path}
+                            payload={previewPayload}
+                            height={previewConfig.height}
+                            obsSize={previewConfig.obsSize}
+                            replayable={previewConfig.replayable}
+                            getTtsUrl={previewTtsUrl}
+                        />
+                    </div>
+                )}
+                </div>
             </div>
         </div>
     );

@@ -11,6 +11,8 @@
 }
 
 .title {
+    /* index.css ตั้งสี h1/h2 เป็นสีเข้ม (ธีม admin) — widget ใช้สีขาวจาก .widget */
+    color: inherit;
     font-size: 22px;
     font-weight: 800;
     margin: 0;
@@ -31,7 +33,7 @@
 .barFill {
     position: relative;
     height: 100%;
-    background: linear-gradient(90deg, #8b5cf6, #00ff88);
+    background: linear-gradient(90deg, #3b82f6, #22c55e);
     border-radius: 999px;
     /* แอนิเมชันตอนหลอดขยับ (เพิ่ม/ลด %) ให้นิ่มนวลขึ้น */
     transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
@@ -64,6 +66,8 @@
 }
 
 .amountText {
+    /* index.css ตั้งสี h1/h2 เป็นสีเข้ม (ธีม admin) — widget ใช้สีขาวจาก .widget */
+    color: inherit;
     font-size: 18px;
     font-weight: 700;
     margin: 0;
@@ -117,7 +121,7 @@
     height: 5px;
     border-radius: 50%;
     background: #ffffff;
-    box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.9), 0 0 9px 3px rgba(139, 92, 246, 0.7);
+    box-shadow: 0 0 4px 1px rgba(255, 255, 255, 0.9), 0 0 9px 3px rgba(59, 130, 246, 0.7);
     opacity: 0;
     animation-name: twinkle;
     animation-timing-function: ease-in-out;

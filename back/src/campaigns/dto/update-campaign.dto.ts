@@ -1,4 +1,4 @@
-import { IsBoolean, IsInt, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsBoolean, IsDateString, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class UpdateCampaignDto {
     @IsOptional()
@@ -9,6 +9,17 @@ export class UpdateCampaignDto {
     @IsInt()
     @Min(1)
     goalAmount?: number;
+
+    // เดิมไม่มีสองฟิลด์นี้ ทั้งที่หน้า Settings ส่งมาทุกครั้งที่กดบันทึก
+    // ValidationPipe (whitelist: true) จึงตัดทิ้งเงียบๆ แล้วตอบ 200
+    // → admin แก้ช่วงวันแคมเปญแล้วเห็นว่า "บันทึกแล้ว" ทั้งที่ไม่มีอะไรเปลี่ยน
+    @IsOptional()
+    @IsDateString()
+    startDate?: string;
+
+    @IsOptional()
+    @IsDateString()
+    endDate?: string;
 
     @IsOptional()
     @IsBoolean()

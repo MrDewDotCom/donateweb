@@ -29,6 +29,8 @@
     font-size: 36px;
     font-weight: 900;
     margin: 0;
+    /* index.css ตั้งสี h1 เป็นสีเข้ม (สำหรับหน้า admin) — overlay ต้องเป็นสีขาว */
+    color: #ffffff;
 }
 
 .amount {
@@ -127,4 +129,16 @@
     100% {
         transform: scale(1);
     }
+}
+/* โดเนทจับเวลา: บอกเวลาที่เพิ่ม */
+.timerAdded {
+    display: inline-block;
+    margin: 6px 0 2px;
+    padding: 4px 14px;
+    border-radius: 999px;
+    background: rgba(59, 130, 246, 0.85);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 800;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }

@@ -16,6 +16,8 @@ dist-ssr
 .env
 .env.*
 !.env.example
+# public build config (API URL only, no secrets)
+!.env.production
 
 # Editor directories and files
 .vscode/*

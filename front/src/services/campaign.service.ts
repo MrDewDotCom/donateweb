@@ -37,14 +37,17 @@ export const getProgress =
             `${API_URL}/campaigns/active/progress`
         );
 
+// limit (ไม่บังคับ) = จำนวนแถวที่ต้องการ 1-20, ไม่ส่ง = ใช้ค่าจาก campaign/settings
 export const getTopDonators =
-    () =>
+    (limit?: number) =>
         axios.get(
-            `${API_URL}/campaigns/active/top-donators`
+            `${API_URL}/campaigns/active/top-donators`,
+            { params: limit ? { limit } : undefined },
         );
 
 export const getRecentDonations =
-    () =>
+    (limit?: number) =>
         axios.get(
-            `${API_URL}/campaigns/active/recent`
+            `${API_URL}/campaigns/active/recent`,
+            { params: limit ? { limit } : undefined },
         );

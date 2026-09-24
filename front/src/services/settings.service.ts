@@ -8,6 +8,10 @@ export const getSettings =
             `${API_URL}/settings`
         );
 
+// ค่าครบทุกช่อง (รวมเลขพร้อมเพย์) — admin เท่านั้น
+export const getAdminSettings =
+    () => adminApi.get(`${API_URL}/settings/admin`);
+
 export const updateSettings =
     (data: any) =>
         adminApi.patch(

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { getTopDonators } from "../services/campaign.service";
 import type { TopDonator } from "../types/topDonator";
+import { acquireSocket, releaseSocket } from "../services/socket";
+import { isPreviewMode, usePreviewPayload } from "../utils/preview";
 import styles from "./TopDonatorsWidget.module.css";
 
 const rankClass = (index: number) => {
@@ -12,6 +14,11 @@ const rankClass = (index: number) => {
 
 export default function TopDonatorsWidget() {
     const [donators, setDonators] = useState<TopDonator[]>([]);
+
+    // พรีวิว: ใช้จำนวนรายการที่กำลังแก้ไข (ยังไม่บันทึก)
+    const [preview] = useState(isPreviewMode);
+    const previewPayload = usePreviewPayload();
+    const previewLimit = preview ? previewPayload?.campaign?.topDonatorLimit : undefined;
 
     useEffect(() => {
         const prevBody = document.body.style.background;
@@ -33,16 +40,37 @@ export default function TopDonatorsWidget() {
     }, []);
 
     useEffect(() => {
+        // เดิม poll ทุก 5 วิ = 12 request/นาที ต่อ widget ซึ่งพอเปิดหลายตัวจากเครื่องเดียว
+        // จะชน rate limit (60/นาที ต่อ IP) แล้วโดน 429 — และไม่มี try/catch
+        // ทำให้ widget ค้างอยู่ที่ข้อมูลเก่าไปตลอดการไลฟ์โดยไม่มีสัญญาณอะไรเลย
+        //
+        // ตอนนี้อัปเดตทันทีที่มีคนโดเนทผ่าน socket แล้ว poll แค่ทุก 60 วิเป็นตัวสำรอง
+        let cancelled = false;
+
         const load = async () => {
-            const res = await getTopDonators();
-            setDonators(res.data);
+            try {
+                const res = await getTopDonators(previewLimit && previewLimit > 0 ? previewLimit : undefined);
+                if (!cancelled) setDonators(res.data ?? []);
+            } catch (err) {
+                // คงค่าเดิมที่แสดงอยู่ไว้ ดีกว่าล้างจอเป็นว่างเปล่ากลางไลฟ์
+                console.error("getTopDonators failed", err);
+            }
         };
 
         load();
 
-        const interval = setInterval(load, 5000);
-        return () => clearInterval(interval);
-    }, []);
+        const interval = setInterval(load, 60000);
+
+        const socket = acquireSocket();
+        socket.on("donationPaid", load);
+
+        return () => {
+            cancelled = true;
+            clearInterval(interval);
+            socket.off("donationPaid", load);
+            releaseSocket();
+        };
+    }, [previewLimit]);
 
     return (
         <div className={styles.widget}>
